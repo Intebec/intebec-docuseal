@@ -40,7 +40,7 @@ en: &en_wl
     manage:
       all: "You are not authorized to perform this action."
   onboarding:
-    support_description: "You can use our self-service AI assistant or email us at direction@monparcours.ca if you have any questions."
+    support_description: "You can use our self-service AI assistant or email us at support@intebec.ca if you have any questions."
 
 fr: &fr_wl
   docuseal_trusted_signature: "Signature de confiance Parcours"
@@ -68,7 +68,7 @@ fr: &fr_wl
   role_gestionnaire: "Gestionnaire"
   role_user: "Utilisateur"
   onboarding:
-    support_description: "Vous pouvez utiliser notre assistant IA en libre-service ou nous écrire à direction@monparcours.ca si vous avez des questions."
+    support_description: "Vous pouvez utiliser notre assistant IA en libre-service ou nous écrire à support@intebec.ca si vous avez des questions."
   # -------------------------------------------------------------------------
   # Common French overrides for base UI strings
   # -------------------------------------------------------------------------
