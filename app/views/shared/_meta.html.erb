@@ -3,6 +3,12 @@
 <% end %>
 <% title = content_for(:html_title) || (signed_in? ? wl.page_title(signed_in: true) : wl.page_title(signed_in: false)) %>
 <% description = content_for(:html_description) || wl.description %>
+<% preview_image_path = wl.preview_image.to_s %>
+<% preview_image_fallback = if preview_image_path.start_with?('http://', 'https://')
+                              preview_image_path
+                            else
+                              "#{root_url.chomp('/')}#{preview_image_path}"
+                            end %>
 <meta name="description" content="<%= description %>">
 <meta property="og:title" content="<%= title %>">
 <meta property="og:description" content="<%= description %>">
@@ -13,10 +19,10 @@
   <meta property="og:image" content="">
   <meta name="twitter:image" content="">
 <% else %>
-  <meta property="og:image" content="<%= content_for(:preview_image_url).presence || "#{root_url}preview.png" %>">
+  <meta property="og:image" content="<%= content_for(:preview_image_url).presence || preview_image_fallback %>">
   <meta property="og:image:width" content="800">
   <meta property="og:image:height" content="800">
-  <meta name="twitter:image" content="<%= content_for(:preview_image_url).presence || "#{root_url}preview.png" %>">
+  <meta name="twitter:image" content="<%= content_for(:preview_image_url).presence || preview_image_fallback %>">
 <% end %>
 <meta name="twitter:card" content="summary">
 <% if wl.twitter_handle.present? %>

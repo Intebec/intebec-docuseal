@@ -138,7 +138,7 @@ export default {
   },
   computed: {
     brandName() {
-      return document.querySelector('meta[name="brand-name"]')?.content || "Intébec";
+      return document.querySelector('meta[name="brand-name"]')?.content || "Parcours";
     },
     brandWebsiteUrl() {
       return document.querySelector('meta[name="brand-website-url"]')?.content || "/";
