@@ -263,3 +263,9 @@ html, body {
   border-color: hsl(220 10% 82%);
 }
 
+/* ─── Root fallbacks ─── */
+:root {
+  --b1: 0 0% 100% !important;
+  --b2: 220 14% 96% !important;
+  --b3: 220 12% 93% !important;
+}
