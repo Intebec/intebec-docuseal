@@ -29,13 +29,13 @@ class TemplatesController < ApplicationController
   def edit
     ActiveRecord::Associations::Preloader.new(
       records: [@template],
-      associations: [schema_documents: [:blob, { preview_images_attachments: :blob }]]
+      associations: [{ schema_documents: [:blob, { preview_images_attachments: :blob }] }]
     ).call
 
     @template_data =
       @template.as_json.merge(
         documents: @template.schema_documents.as_json(
-          methods: %i[metadata signed_uuid],
+          methods: %i[metadata signed_key],
           include: { preview_images: { methods: %i[url metadata filename] } }
         )
       ).to_json
@@ -84,6 +84,8 @@ class TemplatesController < ApplicationController
       else
         @template.update!(archived_at: Time.current)
 
+        WebhookUrls.enqueue_events(@template, 'template.archived')
+
         I18n.t('template_has_been_archived')
       end
 
@@ -95,10 +97,11 @@ class TemplatesController < ApplicationController
   def template_params
     params.require(:template).permit(
       :name,
-      { schema: [[:attachment_uuid, :google_drive_file_id, :name,
+      { schema: [[:attachment_uuid, :google_drive_file_id, :name, :dynamic,
                   { conditions: [%i[field_uuid value action operation]] }]],
         submitters: [%i[name uuid is_requester linked_to_uuid invite_via_field_uuid
                         invite_by_uuid optional_invite_by_uuid email order]],
+        variables_schema: {},
         fields: [[:uuid, :submitter_uuid, :name, :type,
                   :required, :readonly, :default_value,
                   :title, :description, :prefillable,
@@ -107,7 +110,7 @@ class TemplatesController < ApplicationController
                     conditions: [%i[field_uuid value action operation]],
                     options: [%i[value uuid]],
                     validation: %i[message pattern min max step],
-                    areas: [%i[x y w h cell_w attachment_uuid option_uuid page]] }]] }
+                    areas: [%i[uuid x y w h cell_w attachment_uuid option_uuid page]] }]] }
     )
   end
 end

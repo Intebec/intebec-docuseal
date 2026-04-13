@@ -71,6 +71,7 @@ Rails.application.routes.draw do
   resources :submissions, only: %i[show destroy] do
     resources :unarchive, only: %i[create], controller: 'submissions_unarchive'
     resources :events, only: %i[index], controller: 'submission_events'
+    resources :download, only: %i[index], controller: 'submissions_download'
   end
   resources :submitters, only: %i[edit update]
   resources :console_redirect, only: %i[index]
@@ -111,7 +112,7 @@ Rails.application.routes.draw do
     resources :prefillable_fields, only: %i[create], controller: 'templates_prefillable_fields'
     resources :submissions_export, only: %i[index new]
   end
-  resources :preview_document_page, only: %i[show], path: '/preview/:signed_uuid'
+  resources :preview_document_page, only: %i[show], path: '/preview/:signed_key'
   resource :blobs_proxy, only: %i[show], path: '/file/:signed_uuid/*filename',
                          controller: 'api/active_storage_blobs_proxy'
   resource :blobs_proxy, only: %i[show], path: '/blobs_proxy/:signed_uuid/*filename',
@@ -144,23 +145,28 @@ Rails.application.routes.draw do
   resources :submit_form, only: %i[show update], path: 's', param: 'slug' do
     resources :values, only: %i[index], controller: 'submit_form_values'
     resources :download, only: %i[index], controller: 'submit_form_download'
+    resources :documents, only: %i[index], controller: 'submit_form_completed_download'
     resources :decline, only: %i[create], controller: 'submit_form_decline'
+    resources :delegate, only: %i[create], controller: 'submit_form_delegate'
     resources :invite, only: %i[create], controller: 'submit_form_invite'
+    resources :debug, only: %i[index], controller: 'submissions_debug' if Rails.env.development?
     get :completed
+    get :delegated
   end
 
   resources :submit_form_draw_signature, only: %i[show], path: 'p', param: 'slug'
 
   resources :submissions_preview, only: %i[show], path: 'e', param: 'slug' do
     get :completed
+    resources :download, only: %i[index], controller: 'submissions_preview_download'
   end
 
   resources :send_submission_email, only: %i[create]
 
-  resources :submitters, only: %i[], param: 'slug' do
-    resources :download, only: %i[index], controller: 'submissions_download'
+  resources :submitters, only: %i[] do
+    resources :download, only: %i[index], controller: 'submitters_download', constraints: { submitter_id: /\d+/ }
+    resources :download, only: %i[index], controller: 'submit_form_completed_download'
     resources :send_email, only: %i[create], controller: 'submitters_send_email'
-    resources :debug, only: %i[index], controller: 'submissions_debug' if Rails.env.development?
   end
 
   scope '/settings', as: :settings do
@@ -168,6 +174,7 @@ Rails.application.routes.draw do
       resources :storage, only: %i[index create], controller: 'storage_settings'
       resources :search_entries_reindex, only: %i[create]
       resources :sms, only: %i[index], controller: 'sms_settings'
+      resources :mcp, only: %i[index new create destroy], controller: 'mcp_settings'
     end
     if Docuseal.demo? || !Docuseal.multitenant?
       resources :api, only: %i[index create], controller: 'api_settings'
@@ -200,6 +207,8 @@ Rails.application.routes.draw do
       end
     end
   end
+
+  match '/mcp', to: 'mcp#call', via: %i[get post]
 
   get '/js/:filename', to: 'embed_scripts#show', as: :embed_script
 

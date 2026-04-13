@@ -40,13 +40,18 @@ module Api
         return render json: { error: 'Submitter has already completed the submission.' }, status: :unprocessable_content
       end
 
+      if @submitter.declined_at?
+        return render json: { error: 'Submitter has already declined the submission.' }, status: :unprocessable_content
+      end
+
       submission = @submitter.submission
       role = submission.template_submitters.find { |e| e['uuid'] == @submitter.uuid }['name']
 
       normalized_params, new_attachments = Submissions::NormalizeParamUtils.normalize_submitter_params!(
         submitter_params.merge(role:),
         @submitter.template || Template.new(submitters: submission.template_submitters, account: @submitter.account),
-        for_submitter: @submitter
+        for_submitter: @submitter,
+        purpose: :api
       )
 
       Submissions::CreateFromSubmitters.maybe_set_template_fields(submission, [normalized_params],
