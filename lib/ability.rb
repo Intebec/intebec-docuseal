@@ -77,20 +77,16 @@ class Ability
   end
 
   # Map a CanCan :manage action to the individual config actions that are allowed.
+  # Returns [:manage] when all four CRUD permissions are present so that
+  # can?(:manage, Model) checks throughout the app work as expected.
   def map_cancan_actions(cancan_action, config_actions)
     if cancan_action == :manage
-      # Grant :manage directly when all four CRUD actions are permitted so that
-      # can?(:manage, Model) checks throughout the app work as expected.
-      if %w[read create update delete].all? { |a| config_actions.include?(a) }
-        [:manage]
-      else
-        mapped = []
-        mapped << :read    if config_actions.include?('read')
-        mapped << :create  if config_actions.include?('create')
-        mapped << :update  if config_actions.include?('update')
-        mapped << :destroy if config_actions.include?('delete')
-        mapped
-      end
+      mapped = []
+      mapped << :read    if config_actions.include?('read')
+      mapped << :create  if config_actions.include?('create')
+      mapped << :update  if config_actions.include?('update')
+      mapped << :destroy if config_actions.include?('delete')
+      mapped.size == 4 ? [:manage] : mapped
     elsif cancan_action == :destroy
       config_actions.include?('delete') ? [:destroy] : []
     else
