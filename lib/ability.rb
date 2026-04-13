@@ -1,9 +1,28 @@
 # frozen_string_literal: true
-
+ 
 class Ability
   include CanCan::Ability
-
+ 
   # Maps config resource names → CanCan model + action rules.
+  #
+  # Role management lives in config/config.yml — no code changes needed
+  # to add roles, change permissions, or show/hide settings sections.
+  #
+  # The only reason to edit this file is when an upstream DocuSeal merge
+  # introduces a *new model type* that should be permission-controlled.
+  # In that case, add it under the appropriate resource key below, or create
+  # a new key and add the matching resource to config.yml roles.
+  #
+  # ─── How to add a new model ───────────────────────────────────────────────
+  # 1. Pick the resource key it belongs to (templates/submissions/users/settings)
+  #    or create a new key (and update config.yml roles accordingly).
+  # 2. Add a line: [ModelClass, :manage, ->(u) { { account_id: u.account_id } }]
+  # 3. Use :read/:create/:update/:destroy (not :manage) for Template-like models
+  #    that need fine-grained per-action control.
+  #
+  # ─── Personal resources (always available, ignore role) ───────────────────
+  # Add to always_allowed below instead. Examples: AccessToken, McpToken, UserConfig.
+  #
   # All condition procs MUST return hashes (not AR relations) so that
   # class-level can?/authorize! checks work (e.g. `authorize! :index, Template`).
   RESOURCE_MAP = {
@@ -29,17 +48,18 @@ class Ability
       [WebhookUrl,      :manage, ->(u) { { account_id: u.account_id } }]
     ]
   }.freeze
-
+ 
   def initialize(user)
     return unless user
-
+ 
     always_allowed(user)
     apply_role_permissions(user)
   end
-
+ 
   private
-
+ 
   # Personal resources — always available regardless of role.
+  # Add new per-user tokens/configs here (not in RESOURCE_MAP).
   def always_allowed(user)
     can :manage, EncryptedUserConfig, user_id: user.id
     can :manage, UserConfig, user_id: user.id
@@ -49,34 +69,36 @@ class Ability
     can :manage, McpToken, user_id: user.id
     can :manage, :mcp
   end
-
+ 
   def apply_role_permissions(user)
     role = user.role.to_s
-
+ 
     RESOURCE_MAP.each do |resource_key, model_rules|
       config_actions = Whitelabel.role_permissions(role, resource_key)
-
+ 
       model_rules.each do |model, cancan_action, condition_proc|
         grant_if_allowed(user, model, cancan_action, condition_proc, config_actions)
       end
     end
   end
-
+ 
   def grant_if_allowed(user, model, cancan_action, condition_proc, config_actions)
     needed = action_to_config(cancan_action)
     return unless (needed & config_actions).any?
-
+ 
     conditions = condition_proc.call(user)
     granted = map_cancan_actions(cancan_action, config_actions)
     return if granted.empty?
-
+ 
     # Hash-only conditions. Shared-template / linked-account filtering
     # is handled at the controller level (TemplateConditions.collection,
     # filter_templates, etc.) — CanCanCan forbids hash + block together.
     can granted, model, conditions
   end
-
+ 
   # Map a CanCan :manage action to the individual config actions that are allowed.
+  # Returns [:manage] when all four CRUD permissions are present so that
+  # can?(:manage, Model) checks throughout the app work as expected.
   def map_cancan_actions(cancan_action, config_actions)
     if cancan_action == :manage
       mapped = []
@@ -85,13 +107,14 @@ class Ability
       mapped << :update  if config_actions.include?('update')
       mapped << :destroy if config_actions.include?('delete')
       mapped
+      mapped.size == 4 ? [:manage] : mapped
     elsif cancan_action == :destroy
       config_actions.include?('delete') ? [:destroy] : []
     else
       config_actions.include?(cancan_action.to_s) ? [cancan_action] : []
     end
   end
-
+ 
   def action_to_config(cancan_action)
     case cancan_action
     when :manage  then %w[read create update delete]
