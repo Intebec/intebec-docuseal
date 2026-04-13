@@ -21,7 +21,7 @@
             <%= link_to t('email'), settings_email_index_path, class: 'text-base hover:bg-base-300' %>
           </li>
         <% end %>
-        <% if Whitelabel.setting_section_visible?(current_user.role, 'storage') && can?(:read, EncryptedConfig.new(key: EncryptedConfig::FILES_STORAGE_KEY, account: current_account)) && true_user == current_user %>
+        <% if Whitelabel.setting_section_visible?(current_user.role, 'storage') && can?(:read, EncryptedConfig.new(key: EncryptedConfig::FILES_STORAGE_KEY, account: current_account)) && true_user == current_user && ENV['S3_ATTACHMENTS_BUCKET'].blank? && ENV['GCS_BUCKET'].blank? && ENV['AZURE_CONTAINER'].blank? %>
           <li>
             <%= link_to t('storage'), settings_storage_index_path, class: 'text-base hover:bg-base-300' %>
           </li>
@@ -63,6 +63,28 @@
         <% end %>
       <% end %>
       <% if !Docuseal.demo? && can?(:manage, EncryptedConfig) && (current_user == true_user || current_account.testing?) %>
+        <li>
+          <%= link_to Docuseal.multitenant? ? console_redirect_index_path(redir: "#{Docuseal::CONSOLE_URL}#{'/test' if current_account.testing?}/api") : "#{Docuseal::CONSOLE_URL}/on_premises", class: 'text-base hover:bg-base-300', data: { turbo: false } do %>
+            <% if Docuseal.multitenant? %> API <% else %> <%= t('console') %> <% end %>
+          <% end %>
+        </li>
+        <% if Docuseal.multitenant? %>
+          <li>
+            <%= link_to console_redirect_index_path(redir: "#{Docuseal::CONSOLE_URL}#{'/test' if current_account.testing?}/embedding/form"), class: 'text-base hover:bg-base-300', data: { turbo: false } do %>
+              <%= t('embedding') %>
+            <% end %>
+          </li>
+        <% end %>
+        <% if (!Docuseal.multitenant? || can?(:manage, :saml_sso)) && can?(:read, EncryptedConfig.new(key: 'saml_configs', account: current_account)) && true_user == current_user %>
+          <li>
+            <%= link_to 'SSO', settings_sso_index_path, class: 'text-base hover:bg-base-300' %>
+          </li>
+        <% end %>
+        <% if !Docuseal.multitenant? && can?(:read, McpToken) && can?(:manage, :mcp) %>
+          <li>
+            <%= link_to 'MCP', settings_mcp_index_path, class: 'text-base hover:bg-base-300' %>
+          </li>
+        <% end %>
         <%= render 'shared/settings_nav_extra2' %>
         <% if (can?(:manage, EncryptedConfig) && current_user == true_user) || (current_user != true_user && current_account.testing?) %>
           <%= form_for '', url: testing_account_path, method: current_account.testing? ? :delete : :get, html: { class: 'w-full' } do |f| %>

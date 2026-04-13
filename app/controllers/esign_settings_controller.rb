@@ -3,7 +3,7 @@
 class EsignSettingsController < ApplicationController
   DEFAULT_CERT_NAME = Whitelabel.cert_name
 
-  CertFormRecord = Struct.new(:name, :file, :password, keyword_init: true) do
+  CertFormRecord = Struct.new(:name, :file, :password) do
     include ActiveModel::Validations
 
     def to_key

@@ -4,7 +4,7 @@ module Templates
   module DetectFields
     module_function
 
-    TextFieldBox = Struct.new(:x, :y, :w, :h, keyword_init: true) do
+    TextFieldBox = Struct.new(:x, :y, :w, :h) do
       def endy
         @endy ||= y + h
       end
@@ -14,7 +14,7 @@ module Templates
       end
     end
 
-    PageNode = Struct.new(:prev, :next, :elem, :page, :attachment_uuid, keyword_init: true)
+    PageNode = Struct.new(:prev, :next, :elem, :page, :attachment_uuid)
 
     DATE_REGEXP = /
       (?:
@@ -250,7 +250,7 @@ module Templates
 
           if ((current_field.endy - node.endy).abs < y_threshold &&
               (current_field.x <= node.x || node.content.in?(LINEBREAK))) ||
-             current_field.endy < node.y
+             current_field.endy < node.endy
             if tail_node.elem.is_a?(Templates::ImageToFields::Field)
               divider =
                 if (tail_node.elem.endy - current_field.endy).abs > y_threshold

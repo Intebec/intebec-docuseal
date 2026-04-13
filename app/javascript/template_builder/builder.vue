@@ -81,7 +81,7 @@
         />
         <template v-else>
           <form
-            v-if="withSignYourselfButton && undefinedSubmitters.length < 2"
+            v-if="withSignYourselfButton && undefinedSubmitters.length < 2 && (!template.variables_schema || Object.keys(template.variables_schema).length === 0)"
             target="_blank"
             data-turbo="false"
             class="inline"
@@ -274,6 +274,8 @@
           :accept-file-types="acceptFileTypes"
           :with-replace-button="withUploadButton"
           :editable="editable"
+          :dynamic-documents="dynamicDocuments"
+          :with-dynamic-documents="withDynamicDocuments"
           :template="template"
           @scroll-to="scrollIntoDocument(item)"
           @remove="onDocumentRemove"
@@ -352,10 +354,27 @@
           </template>
           <template v-else>
             <template
-              v-for="document in sortedDocuments"
+              v-for="(document, index) in sortedDocuments"
               :key="document.uuid"
             >
+              <DynamicDocument
+                v-if="template.schema[index].dynamic"
+                :ref="setDocumentRefs"
+                :editable="editable"
+                :document="dynamicDocuments.find((dynamicDocument) => dynamicDocument.uuid === document.uuid)"
+                :selected-submitter="selectedSubmitter"
+                :drag-field="dragField"
+                :draw-field="drawField"
+                :draw-field-type="drawFieldType"
+                :draw-custom-field="drawCustomField"
+                :draw-option="drawOption"
+                @update="onDynamicDocumentUpdate"
+                @draw="clearDrawField"
+                @add-custom-field="addCustomField"
+                @set-draw="[drawField = $event.field, drawOption = $event.option]"
+              />
               <Document
+                v-else
                 :ref="setDocumentRefs"
                 :areas-index="fieldAreasIndex[document.uuid]"
                 :selected-submitter="selectedSubmitter"
@@ -497,6 +516,8 @@
             :show-tour-start-form="showTourStartForm"
             @add-field="addField"
             @set-draw="[drawField = $event.field, drawOption = $event.option]"
+            @remove-field="onRemoveField"
+            @remove-submitter="onRemoveSubmitter"
             @select-submitter="selectedSubmitter = $event"
             @set-draw-type="[drawFieldType = $event, showDrawField = true]"
             @set-draw-custom-field="[drawCustomField = $event, showDrawField = true]"
@@ -505,6 +526,7 @@
             @change-submitter="selectedSubmitter = $event"
             @drag-end="[dragField = null, $refs.dragPlaceholder.dragPlaceholder = null]"
             @scroll-to-area="scrollToArea"
+            @rebuild-variables-schema="rebuildVariablesSchema"
           />
         </div>
       </div>
@@ -592,12 +614,13 @@ import MobileFields from './mobile_fields'
 import FieldSubmitter from './field_submitter'
 import { IconPlus, IconUsersPlus, IconDeviceFloppy, IconChevronDown, IconEye, IconWritingSign, IconInnerShadowTop, IconInfoCircle, IconAdjustments, IconDownload } from '@tabler/icons-vue'
 import { v4 } from 'uuid'
-import { ref, computed, toRaw } from 'vue'
+import { ref, computed, toRaw, defineAsyncComponent } from 'vue'
 import * as i18n from './i18n'
 
 export default {
   name: 'TemplateBuilder',
   components: {
+    DynamicDocument: defineAsyncComponent(() => import(/* webpackChunkName: "dynamic-editor" */ './dynamic_document')),
     Upload,
     DragPlaceholder,
     Document,
@@ -720,6 +743,16 @@ export default {
       required: false,
       default: false
     },
+    withPrefillable: {
+      type: Boolean,
+      required: false,
+      default: false
+    },
+    dynamicDocuments: {
+      type: Array,
+      required: false,
+      default: () => []
+    },
     customFields: {
       type: Array,
       required: false,
@@ -778,7 +811,7 @@ export default {
     acceptFileTypes: {
       type: String,
       required: false,
-      default: 'image/*, application/pdf, application/zip'
+      default: 'image/*, application/pdf, application/zip, application/json'
     },
     baseUrl: {
       type: String,
@@ -840,6 +873,11 @@ export default {
       type: String,
       required: false,
       default: ''
+    },
+    withDynamicDocuments: {
+      type: Boolean,
+      required: false,
+      default: false
     },
     withDocumentsList: {
       type: Boolean,
@@ -947,13 +985,6 @@ export default {
           !submitter.is_requester &&
           !submitter.email
       })
-    },
-    withPrefillable () {
-      if (this.template.fields) {
-        return this.template.fields.some((f) => f.prefillable)
-      } else {
-        return false
-      }
     },
     isInlineSize () {
       return CSS.supports('container-type: size')
@@ -1132,6 +1163,32 @@ export default {
 
       this.drawCustomField = null
       this.showDrawField = false
+    },
+    onRemoveField (field) {
+      if (this.dynamicDocuments.length) {
+        field.areas?.forEach((area) => {
+          this.documentRefs.forEach((documentRef) => {
+            if (documentRef.isDynamic && documentRef.document.uuid === area.attachment_uuid) {
+              documentRef.removeArea(area)
+            }
+          })
+        })
+      }
+    },
+    onRemoveSubmitter (submitter) {
+      if (this.dynamicDocuments.length) {
+        this.template.fields.forEach((field) => {
+          if (field.submitter_uuid === submitter.uuid) {
+            field.areas?.forEach((area) => {
+              this.documentRefs.forEach((documentRef) => {
+                if (documentRef.isDynamic && documentRef.document.uuid === area.attachment_uuid) {
+                  documentRef.removeArea(area)
+                }
+              })
+            })
+          }
+        })
+      }
     },
     toggleSelectMode () {
       this.isSelectModeRef.value = !this.isSelectModeRef.value
@@ -2490,60 +2547,80 @@ export default {
 
       this.save()
     },
+    removeAreasByAttachmentUuid (attachmentUuid) {
+      const removedFieldUuids = []
+
+      this.selectedAreasRef.value = this.selectedAreasRef.value.filter((area) => area.attachment_uuid !== attachmentUuid)
+
+      this.template.fields.forEach((field) => {
+        [...(field.areas || [])].forEach((area) => {
+          if (area.attachment_uuid === attachmentUuid) {
+            field.areas.splice(field.areas.indexOf(area), 1)
+
+            removedFieldUuids.push(field.uuid)
+          }
+        })
+      })
+
+      this.template.fields = this.template.fields.reduce((acc, field) => {
+        if (removedFieldUuids.includes(field.uuid) && !field.areas?.length) {
+          this.removeFieldConditions(field)
+        } else {
+          acc.push(field)
+        }
+
+        return acc
+      }, [])
+    },
     onDocumentRemove (item) {
       if (window.confirm(this.t('are_you_sure_'))) {
         this.template.schema.splice(this.template.schema.indexOf(item), 1)
 
-        const removedFieldUuids = []
-
-        this.template.fields.forEach((field) => {
-          [...(field.areas || [])].forEach((area) => {
-            if (area.attachment_uuid === item.attachment_uuid) {
-              field.areas.splice(field.areas.indexOf(area), 1)
-
-              removedFieldUuids.push(field.uuid)
-            }
-          })
-        })
-
-        this.template.fields = this.template.fields.reduce((acc, f) => {
-          if (removedFieldUuids.includes(f.uuid) && !f.areas?.length) {
-            this.removeFieldConditions(f)
-          } else {
-            acc.push(f)
-          }
-
-          return acc
-        }, [])
+        this.removeAreasByAttachmentUuid(item.attachment_uuid)
 
         this.save()
       }
     },
     onDocumentReplace (data) {
       const { replaceSchemaItem, schema, documents } = data
+      const isReplacingDynamicDocument = !!replaceSchemaItem.dynamic
       // eslint-disable-next-line camelcase
-      const { google_drive_file_id, ...cleanedReplaceSchemaItem } = replaceSchemaItem
+      const { google_drive_file_id, dynamic, ...cleanedReplaceSchemaItem } = replaceSchemaItem
 
       this.template.schema.splice(this.template.schema.indexOf(replaceSchemaItem), 1, { ...cleanedReplaceSchemaItem, ...schema[0] })
       this.template.documents.push(...documents)
 
+      if (isReplacingDynamicDocument) {
+        this.removeAreasByAttachmentUuid(replaceSchemaItem.attachment_uuid)
+
+        const dynamicDocumentIndex = this.dynamicDocuments.findIndex((doc) => doc.uuid === replaceSchemaItem.attachment_uuid)
+
+        if (dynamicDocumentIndex !== -1) {
+          this.dynamicDocuments.splice(dynamicDocumentIndex, 1)
+        }
+      }
+
       if (data.fields) {
         this.template.fields = data.fields
 
-        const removedFieldUuids = []
+        if (isReplacingDynamicDocument) {
+          this.removeAreasByAttachmentUuid(replaceSchemaItem.attachment_uuid)
+        } else {
+          const removedFieldUuids = []
 
-        this.template.fields.forEach((field) => {
-          [...(field.areas || [])].forEach((area) => {
-            if (area.attachment_uuid === replaceSchemaItem.attachment_uuid) {
-              field.areas.splice(field.areas.indexOf(area), 1)
+          this.template.fields.forEach((field) => {
+            [...(field.areas || [])].forEach((area) => {
+              if (area.attachment_uuid === replaceSchemaItem.attachment_uuid) {
+                field.areas.splice(field.areas.indexOf(area), 1)
 
-              removedFieldUuids.push(field.uuid)
-            }
+                removedFieldUuids.push(field.uuid)
+              }
+            })
           })
-        })
 
-        this.template.fields =
-          this.template.fields.filter((f) => !removedFieldUuids.includes(f.uuid) || f.areas?.length)
+          this.template.fields =
+            this.template.fields.filter((f) => !removedFieldUuids.includes(f.uuid) || f.areas?.length)
+        }
       }
 
       if (data.submitters) {
@@ -2554,13 +2631,15 @@ export default {
         }
       }
 
-      this.template.fields.forEach((field) => {
-        (field.areas || []).forEach((area) => {
-          if (area.attachment_uuid === replaceSchemaItem.attachment_uuid) {
-            area.attachment_uuid = schema[0].attachment_uuid
-          }
+      if (!isReplacingDynamicDocument) {
+        this.template.fields.forEach((field) => {
+          (field.areas || []).forEach((area) => {
+            if (area.attachment_uuid === replaceSchemaItem.attachment_uuid) {
+              area.attachment_uuid = schema[0].attachment_uuid
+            }
+          })
         })
-      })
+      }
 
       if (this.onUpload) {
         this.onUpload(this.template)
@@ -2656,7 +2735,15 @@ export default {
         } else {
           this.isSaving = true
 
-          this.save().then(() => {
+          const dynamicDocumentRefs = this.documentRefs.filter((ref) => ref.isDynamic)
+
+          dynamicDocumentRefs.map((ref) => ref.update())
+
+          this.rebuildVariablesSchema({ disable: false })
+
+          const dynamicDocumentSaves = dynamicDocumentRefs.map((ref) => ref.saveBody())
+
+          Promise.all([this.save(), ...dynamicDocumentSaves]).then(() => {
             window.Turbo.visit(`/templates/${this.template.id}`)
           }).finally(() => {
             this.isSaving = false
@@ -2667,9 +2754,13 @@ export default {
     scrollToArea (area) {
       const documentRef = this.documentRefs.find((a) => a.document.uuid === area.attachment_uuid)
 
-      documentRef.scrollToArea(area)
+      if (documentRef.isDynamic) {
+        this.selectedAreasRef.value = []
+      } else {
+        this.selectedAreasRef.value = [area]
+      }
 
-      this.selectedAreasRef.value = [area]
+      documentRef.scrollToArea(area)
     },
     baseFetch (path, options = {}) {
       return fetch(this.baseUrl + path, {
@@ -2895,7 +2986,8 @@ export default {
             name: this.template.name,
             schema: this.template.schema,
             submitters: this.template.submitters,
-            fields: this.template.fields
+            fields: this.template.fields,
+            variables_schema: this.template.variables_schema
           }
         }),
         headers: { 'Content-Type': 'application/json' }
@@ -2904,6 +2996,44 @@ export default {
           this.onSave(this.template)
         }
       })
+    },
+    onDynamicDocumentUpdate () {
+      this.rebuildVariablesSchema()
+
+      this.$nextTick(() => {
+        if (this.$el.closest('template-builder')) {
+          this.$el.closest('template-builder').dataset.dynamicDocuments = JSON.stringify(this.dynamicDocuments)
+        }
+      })
+
+      this.save()
+    },
+    rebuildVariablesSchema ({ disable = true } = {}) {
+      const dynamicDocumentRef = this.documentRefs.find((e) => e.isDynamic)
+
+      if (dynamicDocumentRef) {
+        const parsed = {}
+
+        this.documentRefs.forEach((ref) => {
+          if (ref.isDynamic) {
+            ref.updateVariablesSchema()
+          }
+        })
+
+        this.dynamicDocuments.forEach((doc) => {
+          if (doc.variables_schema) {
+            dynamicDocumentRef.mergeSchemaProperties(parsed, doc.variables_schema)
+          }
+        })
+
+        if (!this.template.variables_schema) {
+          this.template.variables_schema = parsed
+        } else {
+          dynamicDocumentRef.syncVariablesSchema(this.template.variables_schema, parsed, { disable })
+        }
+      } else {
+        this.template.variables_schema = {}
+      }
     }
   }
 }

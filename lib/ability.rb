@@ -46,6 +46,8 @@ class Ability
     can :manage, User, id: user.id
     can :read,   Account, id: user.account_id
     can :manage, AccessToken, user_id: user.id
+    can :manage, McpToken, user_id: user.id
+    can :manage, :mcp
   end
 
   def apply_role_permissions(user)
