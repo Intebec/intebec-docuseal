@@ -62,7 +62,7 @@
           </li>
         <% end %>
       <% end %>
-      <% if !Docuseal.demo? && can?(:manage, EncryptedConfig) && (current_user == true_user || current_account.testing?) %>
+      <% if !Docuseal.demo? && can?(:update, EncryptedConfig) && (current_user == true_user || current_account.testing?) %>
         <li>
           <%= link_to Docuseal.multitenant? ? console_redirect_index_path(redir: "#{Docuseal::CONSOLE_URL}#{'/test' if current_account.testing?}/api") : "#{Docuseal::CONSOLE_URL}/on_premises", class: 'text-base hover:bg-base-300', data: { turbo: false } do %>
             <% if Docuseal.multitenant? %> API <% else %> <%= t('console') %> <% end %>
@@ -86,7 +86,7 @@
           </li>
         <% end %>
         <%= render 'shared/settings_nav_extra2' %>
-        <% if (can?(:manage, EncryptedConfig) && current_user == true_user) || (current_user != true_user && current_account.testing?) %>
+        <% if (can?(:update, EncryptedConfig) && current_user == true_user) || (current_user != true_user && current_account.testing?) %>
           <%= form_for '', url: testing_account_path, method: current_account.testing? ? :delete : :get, html: { class: 'w-full' } do |f| %>
             <li>
               <label class="flex items-center text-base hover:bg-base-300 w-full justify-between" for="testing_toggle">
