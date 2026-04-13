@@ -4,6 +4,25 @@ class Ability
   include CanCan::Ability
 
   # Maps config resource names → CanCan model + action rules.
+  #
+  # Role management lives in config/config.yml — no code changes needed
+  # to add roles, change permissions, or show/hide settings sections.
+  #
+  # The only reason to edit this file is when an upstream DocuSeal merge
+  # introduces a *new model type* that should be permission-controlled.
+  # In that case, add it under the appropriate resource key below, or create
+  # a new key and add the matching resource to config.yml roles.
+  #
+  # ─── How to add a new model ───────────────────────────────────────────────
+  # 1. Pick the resource key it belongs to (templates/submissions/users/settings)
+  #    or create a new key (and update config.yml roles accordingly).
+  # 2. Add a line: [ModelClass, :manage, ->(u) { { account_id: u.account_id } }]
+  # 3. Use :read/:create/:update/:destroy (not :manage) for Template-like models
+  #    that need fine-grained per-action control.
+  #
+  # ─── Personal resources (always available, ignore role) ───────────────────
+  # Add to always_allowed below instead. Examples: AccessToken, McpToken, UserConfig.
+  #
   # All condition procs MUST return hashes (not AR relations) so that
   # class-level can?/authorize! checks work (e.g. `authorize! :index, Template`).
   RESOURCE_MAP = {
@@ -40,6 +59,7 @@ class Ability
   private
 
   # Personal resources — always available regardless of role.
+  # Add new per-user tokens/configs here (not in RESOURCE_MAP).
   def always_allowed(user)
     can :manage, EncryptedUserConfig, user_id: user.id
     can :manage, UserConfig, user_id: user.id
