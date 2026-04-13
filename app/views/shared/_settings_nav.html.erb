@@ -63,25 +63,6 @@
         <% end %>
       <% end %>
       <% if !Docuseal.demo? && can?(:manage, EncryptedConfig) && (current_user == true_user || current_account.testing?) %>
-        <% if Docuseal.multitenant? %>
-        <li>
-          <%= link_to console_redirect_index_path(redir: "#{Docuseal::CONSOLE_URL}#{'/test' if current_account.testing?}/api"), class: 'text-base hover:bg-base-300', data: { turbo: false } do %>
-            API
-          <% end %>
-        </li>
-        <% end %>
-        <% if Docuseal.multitenant? %>
-          <li>
-            <%= link_to console_redirect_index_path(redir: "#{Docuseal::CONSOLE_URL}#{'/test' if current_account.testing?}/embedding/form"), class: 'text-base hover:bg-base-300', data: { turbo: false } do %>
-              <%= t('embedding') %>
-            <% end %>
-          </li>
-        <% end %>
-        <% if Docuseal.multitenant? && can?(:manage, :saml_sso) && can?(:read, EncryptedConfig.new(key: 'saml_configs', account: current_account)) && true_user == current_user %>
-          <li>
-            <%= link_to 'SSO', settings_sso_index_path, class: 'text-base hover:bg-base-300' %>
-          </li>
-        <% end %>
         <% if !Docuseal.multitenant? && can?(:read, McpToken) && can?(:manage, :mcp) %>
           <li>
             <%= link_to 'MCP', settings_mcp_index_path, class: 'text-base hover:bg-base-300' %>
