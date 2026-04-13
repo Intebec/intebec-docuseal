@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 class EsignSettingsController < ApplicationController
-  DEFAULT_CERT_NAME = Whitelabel.cert_name
-
   CertFormRecord = Struct.new(:name, :file, :password, keyword_init: true) do
     include ActiveModel::Validations
 
@@ -32,7 +30,7 @@ class EsignSettingsController < ApplicationController
       if default_pkcs
         {
           'pkcs' => default_pkcs,
-          'name' => DEFAULT_CERT_NAME,
+          'name' => default_cert_name,
           'status' => custom_pkcs_list.any? { |e| e['status'] == 'default' } ? 'validate' : 'default'
         }
       end,
@@ -48,7 +46,7 @@ class EsignSettingsController < ApplicationController
     @cert_record = CertFormRecord.new(**cert_params)
 
     if (@encrypted_config.value && @encrypted_config.value['custom']&.any? { |e| e['name'] == @cert_record.name }) ||
-       @cert_record.name == DEFAULT_CERT_NAME
+       @cert_record.name == default_cert_name
 
       @cert_record.errors.add(:name, I18n.t('already_exists'))
 
@@ -93,6 +91,10 @@ class EsignSettingsController < ApplicationController
   end
 
   private
+
+  def default_cert_name
+    Whitelabel.cert_name
+  end
 
   def load_encrypted_config
     @encrypted_config = EncryptedConfig.find_or_initialize_by(account: current_account,

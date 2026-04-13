@@ -118,8 +118,10 @@ module Whitelabel
         @config       = fetch_remote_config
         @next_refresh = Time.now.utc + REFRESH_INTERVAL
       rescue LicenceRevokedError
-        # Licence actively revoked → propagate, controller returns 503
-        @config = {}
+        # Licence actively revoked → propagate, controller returns 503.
+        # Set next_refresh so subsequent requests don't hammer the API.
+        @config       = {}
+        @next_refresh = Time.now.utc + REFRESH_ON_ERROR
         raise
       rescue ConfigError => e
         # Transient error (network, timeout) → keep existing config, retry sooner
