@@ -7,8 +7,9 @@
     <meta name="brand-github-url" content="<%= Whitelabel.github_url %>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <%= csrf_meta_tags %>
-    <% if ENV['ROLLBAR_CLIENT_TOKEN'] %>
-      <meta name="rollbar-token" content="<%= ENV.fetch('ROLLBAR_CLIENT_TOKEN', nil) %>">
+    <% rollbar_token = Whitelabel.rollbar_client_token || ENV['ROLLBAR_CLIENT_TOKEN'] %>
+    <% if rollbar_token.present? %>
+      <meta name="rollbar-token" content="<%= rollbar_token %>">
       <%= javascript_pack_tag 'rollbar', 'form', defer: true %>
     <% else %>
       <%= javascript_pack_tag 'form', defer: true %>
@@ -17,5 +18,6 @@
   </head>
   <body>
     <%= yield %>
+    <%= render 'shared/public_footer' %>
   </body>
 </html>

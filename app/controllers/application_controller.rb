@@ -74,7 +74,7 @@ class ApplicationController < ActionController::Base
                request.env['HTTP_ACCEPT_LANGUAGE'].to_s[BROWSER_LOCALE_REGEXP].to_s.split('-').first.presence
              end
 
-    I18n.with_locale(locale || I18n.default_locale, &)
+    I18n.with_locale(clamp_locale(locale) || I18n.default_locale, &)
   end
 
   def with_browser_locale(&)
@@ -83,16 +83,24 @@ class ApplicationController < ActionController::Base
     locale   = params[:lang].presence
     locale ||= request.env['HTTP_ACCEPT_LANGUAGE'].to_s[BROWSER_LOCALE_REGEXP].to_s
 
-    locale =
-      if locale.starts_with?('en-') && locale != 'en-US'
-        'en-GB'
-      else
-        locale.split('-').first.presence || 'en-GB'
-      end
+    I18n.with_locale(clamp_locale(locale) || Whitelabel.fallback_locale, &)
+  end
 
-    locale = 'en-GB' unless I18n.locale_available?(locale)
+  # Restrict runtime locale to what's declared in config.yml → locale.available.
+  # Protects against DocuSeal upstream strings (es/de/it/…) leaking through
+  # Accept-Language or ?lang=xx. Falls back to Whitelabel.fallback_locale.
+  def clamp_locale(raw)
+    return nil if raw.blank?
 
-    I18n.with_locale(locale, &)
+    available = Whitelabel.available_locales.map(&:to_s)
+    candidate = raw.to_s
+    return candidate if available.include?(candidate)
+
+    base = candidate.split('-').first.to_s
+    return base if available.include?(base)
+
+    match = available.find { |a| a.split('-').first == base }
+    match || Whitelabel.fallback_locale
   end
 
   def sign_in_for_demo

@@ -96,4 +96,11 @@ ENV WORKDIR=/data/docuseal
 ENV VIPS_MAX_COORD=17000
 
 EXPOSE 3000
+
+# Health check — pings Rails' /up endpoint so Docker can detect a wedged
+# process and trigger `restart: unless-stopped`. Pair with a heartbeat URL
+# in config.yml (observability.heartbeat_url) for external alerting.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD wget -q --spider http://localhost:3000/up || exit 1
+
 CMD ["/app/bin/bundle", "exec", "puma", "-C", "/app/config/puma.rb", "--dir", "/app"]

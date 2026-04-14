@@ -58,6 +58,17 @@ Rails.application.config.i18n.default_locale = Whitelabel.default_locale.to_sym
 Rails.application.config.i18n.available_locales = Whitelabel.available_locales.map(&:to_sym)
 Rails.application.config.i18n.fallbacks = [Whitelabel.fallback_locale.to_sym]
 
+# Optional default timezone (IANA name) from locale.time_zone.
+# Affects Time.zone and the default shown in the account settings screen.
+if (tz = Whitelabel.default_timezone).present?
+  begin
+    Rails.application.config.time_zone = tz
+    Time.zone = tz
+  rescue ArgumentError => e
+    Rails.logger.warn "[Whitelabel] Invalid time_zone #{tz.inspect}: #{e.message}"
+  end
+end
+
 deep_stringify_keys = lambda do |hash|
   hash.each_with_object({}) do |(key, value), memo|
     string_key = key.to_s

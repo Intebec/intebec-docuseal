@@ -477,6 +477,28 @@ module Whitelabel
       config.dig('locale', 'fallback') || 'en'
     end
 
+    # Optional default timezone for new accounts + Time.zone.
+    # Expects an IANA name like "America/Montreal".
+    def default_timezone
+      config.dig('locale', 'time_zone')
+    end
+
+    # =====================================================================
+    # Observability (optional — Rollbar client token + heartbeat ping)
+    # =====================================================================
+
+    def rollbar_client_token
+      config.dig('observability', 'rollbar_client_token').presence
+    end
+
+    def heartbeat_url
+      config.dig('observability', 'heartbeat_url').presence
+    end
+
+    def heartbeat_interval_seconds
+      (config.dig('observability', 'heartbeat_interval_seconds') || 300).to_i
+    end
+
     def translation_overrides
       config.dig('text', 'translations') || {}
     end

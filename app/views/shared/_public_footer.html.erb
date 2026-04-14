@@ -1,0 +1,26 @@
+<%# =========================================================================
+    Public footer — shown on sign-in, signature pages and other public forms.
+    Renders nothing if neither privacy_policy nor terms_of_service is set.
+    Controlled entirely by config.yml → urls.privacy_policy / terms_of_service.
+========================================================================= %>
+<% privacy = wl.privacy_policy_url %>
+<% terms   = wl.terms_url %>
+<% if privacy.present? || terms.present? %>
+  <footer class="mt-12 pb-6 px-4 text-center text-xs text-base-content/60">
+    <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+      <% if privacy.present? %>
+        <a href="<%= privacy %>" target="_blank" rel="noopener" class="link link-hover">
+          <%= t('privacy_policy', default: 'Politique de confidentialité') %>
+        </a>
+      <% end %>
+      <% if privacy.present? && terms.present? %>
+        <span aria-hidden="true">·</span>
+      <% end %>
+      <% if terms.present? %>
+        <a href="<%= terms %>" target="_blank" rel="noopener" class="link link-hover">
+          <%= t('terms_of_service', default: 'Conditions d\'utilisation') %>
+        </a>
+      <% end %>
+    </div>
+  </footer>
+<% end %>
