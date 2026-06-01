@@ -50,7 +50,7 @@ DocuSeal is an open source platform that provides secure and efficient digital d
 - Company logo and white-label
 - User roles
 - Automated reminders
-- Invitation and identify verification via SMS
+- Invitation and identity verification via SMS
 - Conditional fields and formulas
 - Bulk send with CSV, XLSX spreadsheet import
 - SSO / SAML
@@ -64,7 +64,7 @@ DocuSeal is an open source platform that provides secure and efficient digital d
 
 |Heroku|Railway|
 |:--:|:---:|
-| [<img alt="Deploy on Heroku" src="https://www.herokucdn.com/deploy/button.svg" height="40">](https://heroku.com/deploy?template=https://github.com/docusealco/docuseal-heroku) | [<img alt="Deploy on Railway" src="https://railway.app/button.svg" height="40">](https://railway.app/template/IGoDnc?referralCode=ruU7JR)|
+| [<img alt="Deploy on Heroku" src="https://www.herokucdn.com/deploy/button.svg" height="40">](https://heroku.com/deploy?template=https://github.com/docusealco/docuseal-heroku) | [<img alt="Deploy on Railway" src="https://railway.app/button.svg" height="40">](https://railway.com/deploy/IGoDnc?referralCode=ruU7JR)|
 |**DigitalOcean**|**Render**|
 | [<img alt="Deploy on DigitalOcean" src="https://www.deploytodo.com/do-btn-blue.svg" height="40">](https://cloud.digitalocean.com/apps/new?repo=https://github.com/docusealco/docuseal-digitalocean/tree/master&refcode=421d50f53990) | [<img alt="Deploy to Render" src="https://render.com/images/deploy-to-render-button.svg" height="40">](https://render.com/deploy?repo=https://github.com/docusealco/docuseal-render)
 
@@ -74,7 +74,7 @@ DocuSeal is an open source platform that provides secure and efficient digital d
 docker run --name docuseal -p 3000:3000 -v.:/data docuseal/docuseal
 ```
 
-By default DocuSeal docker container uses an SQLite database to store data and configurations. Alternatively, it is possible use PostgreSQL or MySQL databases by specifying the `DATABASE_URL` env variable.
+By default DocuSeal docker container uses an SQLite database to store data and configurations. Alternatively, it is possible to use PostgreSQL or MySQL databases by specifying the `DATABASE_URL` env variable.
 
 #### Docker Compose
 
@@ -97,8 +97,8 @@ At DocuSeal we have expertise and technologies to make documents creation, filli
 
 ## License
 
-Distributed under the AGPLv3 License. See [LICENSE](https://github.com/docusealco/docuseal/blob/master/LICENSE) for more information.
-Unless otherwise noted, all files © 2023 DocuSeal LLC.
+Distributed under the AGPLv3 License with Section 7(b) Additional Terms. See [LICENSE](https://github.com/docusealco/docuseal/blob/master/LICENSE) and [LICENSE_ADDITIONAL_TERMS](https://github.com/docusealco/docuseal/blob/master/LICENSE_ADDITIONAL_TERMS) for more information.
+Unless otherwise noted, all files © 2023-2026 DocuSeal LLC.
 
 ## Tools
 

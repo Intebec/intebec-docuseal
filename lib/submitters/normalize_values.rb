@@ -19,7 +19,7 @@ module Submitters
 
     # rubocop:disable Metrics
     def call(template, values, submitter_name: nil, role_names: nil, for_submitter: nil, throw_errors: false,
-             add_fields: false)
+             add_fields: false, purpose: nil)
       fields =
         if role_names.present?
           fetch_roles_fields(template, roles: role_names)
@@ -68,7 +68,7 @@ module Submitters
         value_fields.each do |field|
           if field['type'].in?(%w[initials signature image file stamp]) && value.present?
             new_value, new_attachments =
-              normalize_attachment_value(value, field, template.account, attachments, for_submitter)
+              normalize_attachment_value(value, field, template.account, attachments, for_submitter:, purpose:)
 
             attachments.push(*new_attachments)
 
@@ -103,15 +103,41 @@ module Submitters
     end
 
     def normalize_date(field, value)
-      if value.is_a?(Integer)
+      format = field.dig('preferences', 'format')
+
+      if TimeUtils.format_with_time?(format)
+        normalize_date_time(value, format)
+      elsif TimeUtils.month_only_format?(format)
+        normalize_date_month(value, format)
+      elsif value.is_a?(Integer)
         Time.zone.at(value.to_s.first(10).to_i).to_date.to_s
-      elsif value.gsub(/\w/, '0') == field.dig('preferences', 'format').to_s.gsub(/\w/, '0')
-        TimeUtils.parse_date_string(value, field.dig('preferences', 'format')).to_s
+      elsif value.gsub(/\w/, '0') == format.to_s.gsub(/\w/, '0')
+        TimeUtils.parse_date_string(value, format).to_s
       else
         Date.parse(value).to_s
       end
-    rescue Date::Error
+    rescue ArgumentError
       value
+    end
+
+    def normalize_date_time(value, format)
+      if value.is_a?(Integer)
+        Time.zone.at(value.to_s.first(10).to_i).utc.iso8601
+      elsif value.to_s.match?(/T\d{2}:\d{2}/)
+        Time.iso8601(value).utc.iso8601
+      else
+        TimeUtils.parse_date_string(value, format).utc.iso8601
+      end
+    end
+
+    def normalize_date_month(value, format)
+      if value.is_a?(Integer)
+        Time.zone.at(value.to_s.first(10).to_i).strftime('%Y-%m')
+      elsif value.to_s.match?(/\A\d{4}-\d{2}\z/)
+        value
+      else
+        TimeUtils.parse_date_string(value, format).strftime('%Y-%m')
+      end
     end
 
     def fetch_fields(template, submitter_name: nil, for_submitter: nil)
@@ -153,17 +179,17 @@ module Submitters
             .merge(fields.group_by { |e| e['name'].to_s.downcase })
     end
 
-    def normalize_attachment_value(value, field, account, attachments, for_submitter = nil)
+    def normalize_attachment_value(value, field, account, attachments, for_submitter: nil, purpose: nil)
       if value.is_a?(Array)
         new_attachments = value.map do |v|
-          new_attachment = find_or_build_attachment(v, field, account, for_submitter)
+          new_attachment = find_or_build_attachment(v, field, account, for_submitter:, purpose:)
 
           attachments.find { |a| a.blob_id == new_attachment.blob_id } || new_attachment
         end
 
         [new_attachments.map(&:uuid), new_attachments]
       else
-        new_attachment = find_or_build_attachment(value, field, account, for_submitter)
+        new_attachment = find_or_build_attachment(value, field, account, for_submitter:, purpose:)
 
         existing_attachment = attachments.find { |a| a.blob_id == new_attachment.blob_id }
 
@@ -173,18 +199,24 @@ module Submitters
       end
     end
 
-    def find_or_build_attachment(value, field, account, for_submitter = nil)
+    def find_or_build_attachment(value, field, account, for_submitter: nil, purpose: nil)
       type = field['type']
+
+      raise InvalidDefaultValue, "Invalid #{type} value" if purpose == :bulk
 
       blob =
         if value.match?(%r{\Ahttps?://})
+          raise InvalidDefaultValue, "Invalid #{type} value" unless purpose == :api
+
           find_or_create_blob_from_url(account, value)
         elsif type.in?(%w[signature initials]) && value.length < 60
           find_or_create_blob_from_text(account, value, type)
         elsif (data = Base64.decode64(value.sub(BASE64_PREFIX_REGEXP, ''))) &&
-              Marcel::MimeType.for(data).exclude?('octet-stream')
-          find_or_create_blob_from_base64(account, data, type)
+              (mime_type = Marcel::MimeType.for(data)).exclude?('octet-stream')
+          find_or_create_blob_from_base64(account, data, type, mime_type:)
         elsif type == 'image' && (value.starts_with?('<html>') || value.starts_with?('<!DOCTYPE'))
+          raise InvalidDefaultValue, "Invalid #{type} value" unless purpose == :api
+
           find_or_create_blob_from_html(account, value, field)
         else
           raise InvalidDefaultValue, "Invalid value, url, base64 or text < 60 chars is expected: #{value.first(200)}..."
@@ -204,19 +236,31 @@ module Submitters
       raise InvalidDefaultValue, "HTML content is not allowed: #{value.first(200)}..."
     end
 
-    def find_or_create_blob_from_base64(account, data, type)
+    def find_or_create_blob_from_base64(account, data, type, mime_type: nil)
       checksum = Digest::MD5.base64digest(data)
 
       blob = find_blob_by_checksum(checksum, account)
 
-      blob || ActiveStorage::Blob.create_and_upload!(
-        io: StringIO.new(data),
-        filename: "#{type}.png"
-      )
+      return blob if blob
+
+      mime_type ||= Marcel::MimeType.for(data)
+
+      detected_extensions = Marcel::TYPE_EXTS[mime_type].to_a.map(&:downcase)
+
+      if detected_extensions.any? { |e| Submitters::DANGEROUS_EXTENSIONS.include?(e) }
+        raise InvalidDefaultValue, "File type '.#{detected_extensions.first}' is not allowed."
+      end
+
+      extension = detected_extensions.first
+      extension = 'png' if extension.blank? && type.in?(%w[signature initials stamp image])
+
+      filename = extension.present? ? "#{type}.#{extension}" : type
+
+      ActiveStorage::Blob.create_and_upload!(io: StringIO.new(data), filename:)
     end
 
     def find_or_create_blob_from_text(account, text, type)
-      data = Submitters::GenerateFontImage.call(text, font: type)
+      data, width, height = Submitters::GenerateFontImage.call(text, font: type)
 
       checksum = Digest::MD5.base64digest(data)
 
@@ -224,11 +268,20 @@ module Submitters
 
       blob || ActiveStorage::Blob.create_and_upload!(
         io: StringIO.new(data),
-        filename: "#{type}.png"
+        filename: "#{type}.png",
+        content_type: 'image/png',
+        metadata: { analyzed: true, identified: true, width:, height: }
       )
     end
 
     def find_or_create_blob_from_url(account, url)
+      filename = Addressable::URI.parse(url).path.split('/').last.to_s
+      extension = File.extname(filename).delete_prefix('.').downcase
+
+      if Submitters::DANGEROUS_EXTENSIONS.include?(extension)
+        raise InvalidDefaultValue, "File type '.#{extension}' is not allowed."
+      end
+
       cache_key = [account.id, url].join(':')
       checksum = CHECKSUM_CACHE_STORE.fetch(cache_key)
 
@@ -244,10 +297,7 @@ module Submitters
 
       blob = find_blob_by_checksum(checksum, account)
 
-      blob || ActiveStorage::Blob.create_and_upload!(
-        io: StringIO.new(data),
-        filename: Addressable::URI.parse(url).path.split('/').last
-      )
+      blob || ActiveStorage::Blob.create_and_upload!(io: StringIO.new(data), filename:)
     end
 
     def find_blob_by_checksum(checksum, account)

@@ -1,6 +1,7 @@
 <template>
   <div
     class="list-field group"
+    :class="`list-field-${field.type}`"
   >
     <div
       class="border border-base-300 rounded relative group fields-list-item"
@@ -344,7 +345,7 @@ export default {
     IconMathFunction,
     FieldType
   },
-  inject: ['template', 'backgroundColor', 'selectedAreasRef', 't', 'locale', 'getFieldTypeIndex'],
+  inject: ['template', 'backgroundColor', 'selectedAreasRef', 't', 'locale', 'getFieldTypeIndex', 'dateFormats'],
   props: {
     field: {
       type: Object,
@@ -427,7 +428,8 @@ export default {
 
     if (this.field.type === 'date') {
       this.field.preferences.format ||=
-       ({ 'de-DE': 'DD.MM.YYYY' }[this.locale] || ((Intl.DateTimeFormat().resolvedOptions().locale.endsWith('-US') || new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).format(new Date()).match(/\s(?:CST|CDT|PST|PDT|EST|EDT)$/)) ? 'MM/DD/YYYY' : 'DD/MM/YYYY'))
+        this.dateFormats[0] ||
+        ({ 'de-DE': 'DD.MM.YYYY' }[this.locale] || ((Intl.DateTimeFormat().resolvedOptions().locale.endsWith('-US') || new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).format(new Date()).match(/\s(?:CST|CDT|PST|PDT|EST|EDT)$/)) ? 'MM/DD/YYYY' : 'DD/MM/YYYY'))
     }
   },
   methods: {

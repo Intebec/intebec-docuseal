@@ -40,13 +40,18 @@ module Api
         return render json: { error: 'Submitter has already completed the submission.' }, status: :unprocessable_content
       end
 
+      if @submitter.declined_at?
+        return render json: { error: 'Submitter has already declined the submission.' }, status: :unprocessable_content
+      end
+
       submission = @submitter.submission
       role = submission.template_submitters.find { |e| e['uuid'] == @submitter.uuid }['name']
 
       normalized_params, new_attachments = Submissions::NormalizeParamUtils.normalize_submitter_params!(
         submitter_params.merge(role:),
         @submitter.template || Template.new(submitters: submission.template_submitters, account: @submitter.account),
-        for_submitter: @submitter
+        for_submitter: @submitter,
+        purpose: :api
       )
 
       Submissions::CreateFromSubmitters.maybe_set_template_fields(submission, [normalized_params],
@@ -156,9 +161,7 @@ module Api
           submitter.values = Submitters::SubmitValues.maybe_remove_condition_values(submitter)
         end
 
-        submitter.values = submitter.values.transform_values do |v|
-          v == '{{date}}' ? Time.current.in_time_zone(submitter.account.timezone).to_date.to_s : v
-        end
+        submitter.values = Submitters::SubmitValues.replace_current_date_placeholders(submitter)
       end
 
       submitter
@@ -200,8 +203,13 @@ module Api
 
       submitter.preferences['send_sms'] = submitter_preferences['send_sms'] if submitter_preferences.key?('send_sms')
       submitter.preferences['reply_to'] = submitter_preferences['reply_to'] if submitter_preferences.key?('reply_to')
+
       if submitter_preferences.key?('require_phone_2fa')
         submitter.preferences['require_phone_2fa'] = submitter_preferences['require_phone_2fa']
+      end
+
+      if submitter_preferences.key?('require_email_2fa')
+        submitter.preferences['require_email_2fa'] = submitter_preferences['require_email_2fa']
       end
 
       if submitter_preferences.key?('go_to_last')

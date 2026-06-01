@@ -4,7 +4,7 @@ module Templates
   module ImageToFields
     module_function
 
-    Field = Struct.new(:type, :x, :y, :w, :h, :confidence, keyword_init: true) do
+    Field = Struct.new(:type, :x, :y, :w, :h, :confidence) do
       def endy
         @endy ||= y + h
       end
@@ -71,6 +71,18 @@ module Templates
       detections = apply_nms_nmm(detections, nms_threshold: nms, nmm_threshold: nmm)
 
       build_fields_from_detections(detections, image)
+    end
+
+    def prepare_input(image, **opts)
+      { image:, **opts }
+    end
+
+    def enqueue(image:, **infer_opts)
+      -> { call(image, **infer_opts) }
+    end
+
+    def process_outputs(outputs, **)
+      outputs
     end
 
     def call_v2(image, offset_x, offset_y, split_page, confidence:, resolution:)

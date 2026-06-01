@@ -3,8 +3,6 @@
 module Submissions
   DEFAULT_SUBMITTERS_ORDER = 'random'
 
-  PRELOAD_ALL_PAGES_AMOUNT = 200
-
   module_function
 
   def search(current_user, submissions, keyword, search_values: false, search_template: false)
@@ -80,21 +78,9 @@ module Submissions
 
   def preload_with_pages(submission)
     ActiveRecord::Associations::Preloader.new(
-      records: [submission],
-      associations: [
-        submission.template_id? ? { template_schema_documents: :blob } : { documents_attachments: :blob }
-      ]
+      records: submission.schema_documents,
+      associations: [:blob, { preview_images_attachments: :blob }]
     ).call
-
-    total_pages =
-      submission.schema_documents.sum { |e| e.metadata.dig('pdf', 'number_of_pages').to_i }
-
-    if total_pages < PRELOAD_ALL_PAGES_AMOUNT
-      ActiveRecord::Associations::Preloader.new(
-        records: submission.schema_documents,
-        associations: [:blob, { preview_images_attachments: :blob }]
-      ).call
-    end
 
     submission
   end
@@ -116,6 +102,8 @@ module Submissions
                                 account_id: user.account_id,
                                 preferences:,
                                 sent_at: mark_as_sent ? Time.current : nil)
+
+      Submissions::CreateFromSubmitters.maybe_set_dynamic_documents(submission)
 
       submission.save!
 
@@ -174,7 +162,7 @@ module Submissions
     return email.downcase.sub(/@gmail?\z/i, '@gmail.com') if email.match?(/@gmail?\z/i)
 
     return email.downcase if email.include?(',') ||
-                             email.match?(/\.(?:gob|om|mm|cm|et|mo|nz|za|ie)\z/) ||
+                             email.match?(/\.(?:gob(?:\.\w+)?|om|mm|cm|et|mo|nz|za|ie|ed\.jp)\z/i) ||
                              email.exclude?('.')
 
     fixed_email = EmailTypo.call(email.delete_prefix('<'))
@@ -187,7 +175,9 @@ module Submissions
     return email.downcase if domain == fixed_domain
     return email.downcase if fixed_domain.match?(/\Agmail\.(?!com\z)/i)
 
-    if DidYouMean::Levenshtein.distance(domain, fixed_domain) > 3
+    threshold = fixed_domain.start_with?('hotmail.') ? 2 : 3
+
+    if DidYouMean::Levenshtein.distance(domain, fixed_domain) > threshold
       Rails.logger.info("Skipped email fix #{domain}")
 
       return email.downcase

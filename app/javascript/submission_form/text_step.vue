@@ -23,6 +23,7 @@
   />
   <div
     v-if="field.description"
+    :id="field.uuid + '-desc'"
     dir="auto"
     class="mb-3 px-1 field-description-text"
   >
@@ -40,11 +41,11 @@
       :class="{ '!pr-11 -mr-10': !field.validation?.pattern }"
       :required="field.required"
       :pattern="field.validation?.pattern"
+      :title="validationMessage"
+      :aria-describedby="field.description ? field.uuid + '-desc' : undefined"
       :placeholder="`${t('type_here_')}${field.required ? '' : ` (${t('optional')})`}`"
       type="text"
       :name="`values[${field.uuid}]`"
-      @invalid="validationMessage ? $event.target.setCustomValidity(validationMessage) : ''"
-      @input="validationMessage ? $event.target.setCustomValidity('') : ''"
       @focus="$emit('focus')"
     >
     <textarea
@@ -54,6 +55,7 @@
       v-model="text"
       dir="auto"
       class="base-textarea !text-2xl w-full"
+      :aria-describedby="field.description ? field.uuid + '-desc' : undefined"
       :placeholder="`${t('type_here_')}${field.required ? '' : ` (${t('optional')})`}`"
       :required="field.required"
       :name="`values[${field.uuid}]`"
@@ -65,13 +67,14 @@
       class="tooltip"
       :data-tip="t('toggle_multiline_text')"
     >
-      <a
-        href="#"
+      <button
+        type="button"
+        :aria-label="t('toggle_multiline_text')"
         class="btn btn-ghost btn-circle btn-sm toggle-multiline-text-button"
-        @click.prevent="toggleTextArea"
+        @click="toggleTextArea"
       >
-        <IconAlignBoxLeftTop />
-      </a>
+        <IconAlignBoxLeftTop aria-hidden="true" />
+      </button>
     </div>
   </div>
 </template>
@@ -134,6 +137,17 @@ export default {
         return null
       }
     },
+    patternMessageKeys () {
+      return {
+        '^[0-9]{3}-[0-9]{2}-[0-9]{4}$': 'must_be_valid_ssn',
+        '^[0-9]{2}-[0-9]{7}$': 'must_be_valid_ein',
+        '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$': 'must_be_valid_email',
+        '^https?://.*': 'must_be_valid_url',
+        '^[0-9]{5}(?:-[0-9]{4})?$': 'must_be_valid_zip',
+        '^[0-9]+$': 'must_contain_numbers_only',
+        '^[a-zA-Z]+$': 'must_contain_letters_only'
+      }
+    },
     validationMessage () {
       if (this.field.validation?.message) {
         return this.field.validation.message
@@ -145,6 +159,10 @@ export default {
             .join('-')
 
         return this.t('must_be_characters_length').replace('{number}', number)
+      } else if (this.field.validation?.pattern) {
+        const key = this.patternMessageKeys[this.field.validation.pattern]
+
+        return key ? this.t(key) : ''
       } else {
         return ''
       }

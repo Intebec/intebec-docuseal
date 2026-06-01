@@ -4,7 +4,11 @@ class TemplatesRestoreController < ApplicationController
   load_and_authorize_resource :template
 
   def create
+    authorize!(:update, @template)
+
     @template.update!(archived_at: nil)
+
+    WebhookUrls.enqueue_events(@template, 'template.updated')
 
     redirect_to template_path(@template), notice: I18n.t('template_has_been_unarchived')
   end

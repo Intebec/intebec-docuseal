@@ -56,6 +56,8 @@ module Submissions
             template_submitter = template_submitters.find { |e| e['uuid'] == uuid }
           end
 
+          raise BaseError, 'Invalid submitter params' unless template_submitter
+
           template_submitter = template_submitter.except('optional_invite_by_uuid', 'invite_by_uuid',
                                                          'invite_via_field_uuid')
 
@@ -71,6 +73,7 @@ module Submissions
                           preferences: preferences.merge(submission_preferences))
         end
 
+        maybe_set_dynamic_documents(submission)
         maybe_set_template_fields(submission, attrs[:submitters], with_template:, new_fields:)
 
         if submission.submitters.size > template.submitters.size
@@ -95,6 +98,46 @@ module Submissions
       maybe_enqueue_expire_at(submissions)
 
       submissions
+    end
+
+    def maybe_set_dynamic_documents(submission)
+      return submission unless submission.template_id?
+
+      template = submission.template
+
+      return submission if template.variables_schema.present? ||
+                           submission.variables_schema.present?
+
+      return submission if template.schema.none? { |e| e['dynamic'] }
+
+      areas_index = {}
+      submission.template_schema = []
+
+      template.schema.each do |item|
+        if item['dynamic']
+          dynamic_document = template.schema_dynamic_documents.find { |e| e.uuid == item['attachment_uuid'] }
+
+          dynamic_document_version = DynamicDocuments::EnsureVersionGenerated.call(dynamic_document)
+
+          dynamic_document_version.areas.each { |area| areas_index[area['uuid']] = area }
+
+          submission.template_schema << item.deep_dup.merge('dynamic_document_sha1' => dynamic_document.sha1)
+        else
+          submission.template_schema << item.deep_dup
+        end
+      end
+
+      submission.template_fields = template.fields.deep_dup
+
+      submission.template_fields.each do |field|
+        field['areas'].to_a.each do |area|
+          dynamic_area = areas_index[area['uuid']]
+
+          area.merge!(dynamic_area) if dynamic_area
+        end
+      end
+
+      submission
     end
 
     def maybe_enqueue_expire_at(submissions)
@@ -159,7 +202,8 @@ module Submissions
       end
 
       if template_fields != (submission.template_fields || submission.template.fields) || new_fields.present? ||
-         submitters_attrs.any? { |e| e[:completed].present? } || !with_template || submission.variables.present?
+         submitters_attrs.any? { |e| e[:completed].present? } || !with_template || submission.variables.present? ||
+         submission.template&.variables_schema.present?
         submission.template_fields = new_fields ? new_fields + template_fields : template_fields
         submission.template_schema = submission.template.schema if submission.template_schema.blank?
         submission.variables_schema = submission.template.variables_schema if submission.template &&
@@ -366,9 +410,7 @@ module Submissions
         submitter.values = Submitters::SubmitValues.maybe_remove_condition_values(submitter)
       end
 
-      submitter.values = submitter.values.transform_values do |v|
-        v == '{{date}}' ? Time.current.in_time_zone(submitter.submission.account.timezone).to_date.to_s : v
-      end
+      submitter.values = Submitters::SubmitValues.replace_current_date_placeholders(submitter)
 
       submitter
     end

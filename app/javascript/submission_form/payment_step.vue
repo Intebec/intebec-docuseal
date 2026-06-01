@@ -33,6 +33,7 @@
     <div v-else>
       <button
         v-if="sessionId"
+        type="button"
         disabled
         class="base-button w-full modal-save-button"
       >
@@ -47,6 +48,7 @@
       <button
         v-else
         :id="field.uuid"
+        type="button"
         class="btn bg-[#7B73FF] text-white hover:bg-[#0A2540] text-lg w-full"
         :class="{ disabled: isCreatingCheckout }"
         :disabled="isCreatingCheckout"
@@ -165,34 +167,9 @@ export default {
     }
 
     if (this.field.preferences?.formula) {
-      const {
-        create,
-        evaluateDependencies,
-        addDependencies,
-        subtractDependencies,
-        divideDependencies,
-        multiplyDependencies,
-        powDependencies,
-        roundDependencies,
-        absDependencies,
-        sinDependencies,
-        tanDependencies,
-        cosDependencies
-      } = await import('mathjs')
+      const { Calculator } = await import('./calculator')
 
-      this.math = create({
-        evaluateDependencies,
-        addDependencies,
-        subtractDependencies,
-        divideDependencies,
-        multiplyDependencies,
-        powDependencies,
-        roundDependencies,
-        absDependencies,
-        sinDependencies,
-        tanDependencies,
-        cosDependencies
-      })
+      this.math = new Calculator()
 
       this.isMathLoaded = true
     }

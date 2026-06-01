@@ -4,12 +4,7 @@ module Submitters
   module CreateStampAttachment
     WIDTH = 400
     HEIGHT = 200
-
-    TRANSPARENT_PIXEL = "\x89PNG\r\n\u001A\n\u0000\u0000\u0000\rIHDR\u0000" \
-                        "\u0000\u0000\u0001\u0000\u0000\u0000\u0001\b\u0004" \
-                        "\u0000\u0000\u0000\xB5\u001C\f\u0002\u0000\u0000\u0000" \
-                        "\vIDATx\xDAc\xFC_\u000F\u0000\u0002\x83\u0001\x804\xC3ڨ" \
-                        "\u0000\u0000\u0000\u0000IEND\xAEB`\x82"
+    LRM = "\u200E"
 
     module_function
 
@@ -24,7 +19,7 @@ module Submitters
     def build_attachment(submitter, with_logo: true)
       image = generate_stamp_image(submitter, with_logo:)
 
-      image_data = image.write_to_buffer('.png')
+      image_data = image.write_to_buffer('.png', strip: true)
 
       checksum = Digest::MD5.base64digest(image_data)
 
@@ -39,16 +34,17 @@ module Submitters
     def generate_stamp_image(submitter, with_logo: true)
       logo =
         if with_logo
-          Vips::Image.new_from_buffer(load_logo(submitter).read, '')
+          ImageUtils.load_vips(load_logo(submitter).read)
         else
-          Vips::Image.new_from_buffer(TRANSPARENT_PIXEL, '').resize(WIDTH)
+          Vips::Image.black(WIDTH, WIDTH, bands: 4).copy(interpretation: :srgb)
         end
 
       logo = logo.resize([WIDTH / logo.width.to_f, HEIGHT / logo.height.to_f].min)
+      logo = logo.copy(interpretation: :srgb) if logo.interpretation == :multiband
 
-      base_layer = Vips::Image.black(WIDTH, HEIGHT).new_from_image([255, 255, 255]).copy(interpretation: :srgb)
+      base_layer = Vips::Image.black(WIDTH, HEIGHT).new_from_image([255, 255, 255, 255]).copy(interpretation: :srgb)
 
-      opacity_layer = Vips::Image.new_from_buffer(TRANSPARENT_PIXEL, '').resize(WIDTH)
+      opacity_layer = Vips::Image.black(WIDTH, HEIGHT).new_from_image([255, 255, 255, 127]).copy(interpretation: :srgb)
 
       text = build_text_image(submitter)
 
@@ -83,7 +79,8 @@ module Submitters
       name = ERB::Util.html_escape(name)
       role = ERB::Util.html_escape(role)
 
-      text = %(<span size="90">#{digitally_signed_by}:\n<b>#{name}</b>\n#{role}#{time} #{timezone}</span>)
+      text =
+        %(<span size="90">#{LRM}#{digitally_signed_by}:\n#{LRM}<b>#{name}</b>\n#{LRM}#{role}#{time} #{timezone}</span>)
 
       Vips::Image.text(text, width: WIDTH, height: HEIGHT, wrap: :'word-char')
     end
