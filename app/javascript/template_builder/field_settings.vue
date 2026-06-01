@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="field.type === 'verification'"
-    class="py-1.5 px-1 relative"
+    class="field-settings-verification-method py-1.5 px-1 relative"
     @click.stop
   >
     <select
@@ -28,7 +28,7 @@
   </div>
   <div
     v-if="['select', 'radio'].includes(field.type) && !defaultField"
-    class="py-1.5 px-1 relative"
+    class="field-settings-default-value py-1.5 px-1 relative"
     @click.stop
   >
     <select
@@ -62,7 +62,7 @@
   </div>
   <div
     v-if="['text', 'number'].includes(field.type) && !defaultField"
-    class="py-1.5 px-1 relative"
+    class="field-settings-default-value py-1.5 px-1 relative"
     @click.stop
   >
     <input
@@ -84,7 +84,7 @@
   </div>
   <div
     v-if="['text', 'cells'].includes(field.type)"
-    class="py-1.5 px-1 relative"
+    class="field-settings-validation py-1.5 px-1 relative"
     @click.stop
   >
     <select
@@ -122,7 +122,7 @@
   </div>
   <div
     v-if="['text', 'cells'].includes(field.type) && field.validation && lengthValidation"
-    class="py-1.5 px-1 relative flex space-x-1"
+    class="field-settings-length-validation py-1.5 px-1 relative flex space-x-1"
     @click.stop
   >
     <div class="w-1/2 relative">
@@ -166,7 +166,7 @@
   </div>
   <div
     v-if="field.type === 'number'"
-    class="py-1.5 px-1 relative flex space-x-1"
+    class="field-settings-number-range py-1.5 px-1 relative flex space-x-1"
     @click.stop
   >
     <div class="w-1/2 relative">
@@ -210,7 +210,7 @@
   </div>
   <div
     v-if="field.type === 'number'"
-    class="py-1.5 px-1 relative"
+    class="field-settings-number-format py-1.5 px-1 relative"
     @click.stop
   >
     <select
@@ -237,7 +237,7 @@
   </div>
   <div
     v-if="['text', 'cells'].includes(field.type) && field.validation && !validations[field.validation.pattern] && !lengthValidation"
-    class="py-1.5 px-1 relative"
+    class="field-settings-custom-validation py-1.5 px-1 relative"
     @click.stop
   >
     <input
@@ -259,7 +259,7 @@
   </div>
   <div
     v-if="['text', 'cells'].includes(field.type) && field.validation && !validations[field.validation.pattern] && !lengthValidation"
-    class="py-1.5 px-1 relative"
+    class="field-settings-error-message py-1.5 px-1 relative"
     @click.stop
   >
     <input
@@ -280,7 +280,7 @@
   </div>
   <div
     v-if="field.type === 'date'"
-    class="py-1.5 px-1 relative"
+    class="field-settings-date-format py-1.5 px-1 relative"
     @click.stop
   >
     <select
@@ -290,7 +290,7 @@
       @change="$emit('save')"
     >
       <option
-        v-for="format in dateFormats"
+        v-for="format in availableDateFormats"
         :key="format"
         :value="format"
       >
@@ -307,7 +307,7 @@
   </div>
   <div
     v-if="field.type === 'signature'"
-    class="py-1.5 px-1 relative"
+    class="field-settings-signature-format py-1.5 px-1 relative"
     @click.stop
   >
     <select
@@ -340,6 +340,7 @@
   </div>
   <li
     v-if="[true, false].includes(withSignatureId) && field.type === 'signature'"
+    class="field-settings-signature-id"
     @click.stop
   >
     <label class="cursor-pointer py-1.5">
@@ -355,6 +356,7 @@
   </li>
   <li
     v-if="withRequired && field.type !== 'phone' && field.type !== 'stamp' && field.type !== 'verification' && field.type !== 'strikethrough' && field.type !== 'heading'"
+    class="field-settings-required"
     @click.stop
   >
     <label class="cursor-pointer py-1.5">
@@ -370,6 +372,7 @@
   </li>
   <li
     v-if="field.type == 'stamp'"
+    class="field-settings-with-logo"
     @click.stop
   >
     <label class="cursor-pointer py-1.5">
@@ -384,6 +387,7 @@
   </li>
   <li
     v-if="field.type == 'checkbox'"
+    class="field-settings-checked"
     @click.stop
   >
     <label class="cursor-pointer py-1.5">
@@ -398,6 +402,7 @@
   </li>
   <li
     v-if="field.type == 'date'"
+    class="field-settings-set-signing-date"
     @click.stop
   >
     <label class="cursor-pointer py-1.5">
@@ -412,6 +417,7 @@
   </li>
   <li
     v-if="['text', 'number', 'radio', 'multiple', 'select'].includes(field.type)"
+    class="field-settings-read-only"
     @click.stop
   >
     <label class="cursor-pointer py-1.5">
@@ -427,6 +433,7 @@
   </li>
   <li
     v-if="withPrefillable && prefillableFieldTypes.includes(field['type'])"
+    class="field-settings-prefillable"
     @click.stop
   >
     <label class="cursor-pointer py-1.5">
@@ -444,7 +451,10 @@
     v-if="field.type != 'stamp'"
     class="pb-0.5 mt-0.5"
   >
-  <li v-if="['text', 'number', 'date', 'select', 'heading', 'cells'].includes(field.type)">
+  <li
+    v-if="['text', 'number', 'date', 'select', 'heading', 'cells'].includes(field.type)"
+    class="field-settings-font"
+  >
     <label
       class="label-text cursor-pointer text-center w-full flex items-center"
       @click="$emit('click-font')"
@@ -459,6 +469,7 @@
   </li>
   <li
     v-if="field.type != 'stamp' && field.type != 'heading' && field.type != 'strikethrough'"
+    class="field-settings-description"
   >
     <label
       class="label-text cursor-pointer text-center w-full flex items-center"
@@ -474,6 +485,7 @@
   </li>
   <li
     v-if="withCondition && field.type != 'stamp' && field.type != 'heading'"
+    class="field-settings-condition"
   >
     <label
       class="label-text cursor-pointer text-center w-full flex items-center"
@@ -487,7 +499,10 @@
       </span>
     </label>
   </li>
-  <li v-if="field.type == 'number'">
+  <li
+    v-if="field.type == 'number'"
+    class="field-settings-formula"
+  >
     <label
       class="label-text cursor-pointer text-center w-full flex items-center"
       @click="$emit('click-formula')"
@@ -501,13 +516,14 @@
     </label>
   </li>
   <hr
-    v-if="withCopyToAllPages || withAreas || withCustomFields"
+    v-if="(withCopyToAllPages && canCopyToAllPages) || withAreas || withCustomFields"
     class="pb-0.5 mt-0.5"
   >
   <template v-if="withAreas">
     <li
       v-for="(area, index) in sortedAreas"
       :key="index"
+      class="field-settings-area"
     >
       <a
         href="#"
@@ -527,7 +543,10 @@
         />
       </a>
     </li>
-    <li v-if="!field.areas?.length || !['radio', 'multiple'].includes(field.type)">
+    <li
+      v-if="!field.areas?.length || !['radio', 'multiple'].includes(field.type)"
+      class="field-settings-draw-new-area"
+    >
       <a
         href="#"
         class="text-sm py-1 px-2"
@@ -541,7 +560,10 @@
       </a>
     </li>
   </template>
-  <li v-if="withCopyToAllPages && field.areas?.length === 1 && ['date', 'signature', 'initials', 'text', 'cells', 'stamp'].includes(field.type)">
+  <li
+    v-if="withCopyToAllPages && canCopyToAllPages && field.areas?.length === 1 && ['date', 'signature', 'initials', 'text', 'cells', 'stamp'].includes(field.type)"
+    class="field-settings-copy-to-all-pages"
+  >
     <a
       href="#"
       class="text-sm py-1 px-2"
@@ -554,7 +576,10 @@
       {{ t('copy_to_all_pages') }}
     </a>
   </li>
-  <li v-if="withCustomFields">
+  <li
+    v-if="withCustomFields"
+    class="field-settings-save-as-custom-field"
+  >
     <a
       href="#"
       class="text-sm py-1 px-2"
@@ -585,7 +610,7 @@ export default {
     IconTypography,
     IconX
   },
-  inject: ['template', 't'],
+  inject: ['template', 't', 'dateFormats', 'locale'],
   props: {
     field: {
       type: Object,
@@ -656,31 +681,46 @@ export default {
         return acc
       }, {})
     },
-    numberFormats () {
-      return [
-        'none',
-        'usd',
-        'eur',
-        'gbp',
-        'comma',
-        'dot',
-        'space'
-      ]
-    },
-    dateFormats () {
-      const formats = [
-        'MM/DD/YYYY',
-        'DD/MM/YYYY',
-        'YYYY-MM-DD',
-        'DD-MM-YYYY',
-        'DD.MM.YYYY',
-        'MMM D, YYYY',
-        'MMMM D, YYYY',
-        'D MMM YYYY',
-        'D MMMM YYYY'
-      ]
+    canCopyToAllPages () {
+      const firstArea = this.field.areas[0]
 
-      if (Intl.DateTimeFormat().resolvedOptions().timeZone?.includes('Seoul') || navigator.language?.startsWith('ko')) {
+      if (firstArea) {
+        return firstArea.page !== null && firstArea.page !== undefined
+      } else {
+        return false
+      }
+    },
+    numberFormats () {
+      const formats = ['none', 'usd', 'eur', 'gbp', 'comma', 'dot', 'space']
+      const spaceLocales = ['fr-FR', 'es-ES', 'pt-PT', 'de-DE', 'it-IT', 'nl-NL']
+
+      formats.push(spaceLocales.includes(this.locale) ? 'percent_space' : 'percent')
+
+      const selectedFormat = this.field.preferences?.format
+
+      if (selectedFormat && !formats.includes(selectedFormat)) {
+        formats.push(selectedFormat)
+      }
+
+      return formats
+    },
+    availableDateFormats () {
+      const formats = this.dateFormats.length
+        ? [...this.dateFormats]
+        : [
+            'MM/DD/YYYY',
+            'DD/MM/YYYY',
+            'YYYY-MM-DD',
+            'DD-MM-YYYY',
+            'DD.MM.YYYY',
+            'MMM D, YYYY',
+            'MMMM D, YYYY',
+            'MMMM YYYY',
+            'D MMM YYYY',
+            'D MMMM YYYY'
+          ]
+
+      if (!this.dateFormats.length && (Intl.DateTimeFormat().resolvedOptions().timeZone?.includes('Seoul') || navigator.language?.startsWith('ko'))) {
         formats.push('YYYY년 MM월 DD일')
       }
 
@@ -719,7 +759,7 @@ export default {
       return ['text', 'number', 'cells', 'date', 'checkbox', 'select', 'radio', 'phone']
     },
     sortedAreas () {
-      return (this.field.areas || []).sort((a, b) => {
+      return (this.field.areas || []).filter((e) => e.page !== null && e.page !== undefined).sort((a, b) => {
         return this.schemaAttachmentsIndexes[a.attachment_uuid] - this.schemaAttachmentsIndexes[b.attachment_uuid]
       })
     }
@@ -749,16 +789,26 @@ export default {
     },
     copyToAllPages (field) {
       const areaString = JSON.stringify(field.areas[0])
+      const newAreas = []
+      const existingAreasIndex = field.areas.reduce((acc, area) => {
+        acc[`${area.attachment_uuid}-${area.page}`] = area
 
-      this.template.documents.forEach((attachment) => {
+        return acc
+      }, {})
+
+      this.template.schema.forEach((item) => {
+        const attachment = this.template.documents.find((d) => d.uuid === item.attachment_uuid)
+
         const numberOfPages = attachment.metadata?.pdf?.number_of_pages || attachment.preview_images.length
 
         for (let page = 0; page <= numberOfPages - 1; page++) {
-          if (!field.areas.find((area) => area.attachment_uuid === attachment.uuid && area.page === page)) {
-            field.areas.push({ ...JSON.parse(areaString), attachment_uuid: attachment.uuid, page })
-          }
+          const existing = existingAreasIndex[`${attachment.uuid}-${page}`]
+
+          newAreas.push(existing || { ...JSON.parse(areaString), attachment_uuid: attachment.uuid, page })
         }
       })
+
+      field.areas = newAreas
 
       this.$emit('scroll-to', this.field.areas[this.field.areas.length - 1])
 
@@ -777,6 +827,10 @@ export default {
         return new Intl.NumberFormat('de-DE').format(number)
       } else if (format === 'space') {
         return new Intl.NumberFormat('fr-FR').format(number)
+      } else if (format === 'percent') {
+        return `${number}%`
+      } else if (format === 'percent_space') {
+        return `${String(number).replace('.', ',')} %`
       } else {
         return number
       }
@@ -785,33 +839,49 @@ export default {
       return pattern?.match(/^\.{(?<min>\d+),(?<max>\d+)?}$/)?.groups || null
     },
     formatDate (date, format) {
-      const monthFormats = {
-        M: 'numeric',
-        MM: '2-digit',
-        MMM: 'short',
-        MMMM: 'long'
-      }
+      const monthFormats = { M: 'numeric', MM: '2-digit', MMM: 'short', MMMM: 'long' }
+      const dayFormats = { D: 'numeric', DD: '2-digit' }
+      const yearFormats = { YYYY: 'numeric', YYY: 'numeric', YY: '2-digit' }
+      const hourFormats = { H: 'numeric', HH: '2-digit', h: 'numeric', hh: '2-digit' }
+      const minuteFormats = { m: 'numeric', mm: '2-digit' }
+      const secondFormats = { s: 'numeric', ss: '2-digit' }
 
-      const dayFormats = {
-        D: 'numeric',
-        DD: '2-digit'
-      }
-
-      const yearFormats = {
-        YYYY: 'numeric',
-        YY: '2-digit'
-      }
-
-      const parts = new Intl.DateTimeFormat([], {
+      const opts = {
         day: dayFormats[format.match(/D+/)],
         month: monthFormats[format.match(/M+/)],
         year: yearFormats[format.match(/Y+/)]
-      }).formatToParts(date)
+      }
 
-      return format
-        .replace(/D+/, parts.find((p) => p.type === 'day').value)
-        .replace(/M+/, parts.find((p) => p.type === 'month').value)
-        .replace(/Y+/, parts.find((p) => p.type === 'year').value)
+      if (format.match(/H+/)) { opts.hour = hourFormats[format.match(/H+/)[0]]; opts.hour12 = false }
+      if (format.match(/h+/)) { opts.hour = hourFormats[format.match(/h+/)[0]]; opts.hour12 = true }
+      if (/[Aa]/.test(format) && opts.hour12 === undefined) opts.hour12 = true
+      if (format.match(/m+/)) opts.minute = minuteFormats[format.match(/m+/)[0]]
+      if (format.match(/s+/)) opts.second = secondFormats[format.match(/s+/)[0]]
+      if (/z/.test(format)) opts.timeZoneName = 'short'
+
+      const partTypes = {
+        M: 'month',
+        D: 'day',
+        Y: 'year',
+        H: 'hour',
+        h: 'hour',
+        m: 'minute',
+        s: 'second',
+        z: 'timeZoneName',
+        A: 'dayPeriod',
+        a: 'dayPeriod'
+      }
+
+      const parts = new Intl.DateTimeFormat([], opts).formatToParts(date)
+
+      return format.replace(/MMMM|MMM|MM|M|DD|D|YYYY|YYY|YY|HH|hh|H|h|mm|m|ss|s|A|a|z/g, (token) => {
+        const value = parts.find((p) => p.type === partTypes[token[0]])?.value
+
+        if (token === 'A') return (value || '').toUpperCase()
+        if (token === 'a') return (value || '').toLowerCase()
+
+        return value
+      })
     }
   }
 }

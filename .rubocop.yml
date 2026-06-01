@@ -28,7 +28,7 @@ Lint/MissingSuper:
   Enabled: false
 
 Metrics/ParameterLists:
-  Max: 10
+  Max: 12
 
 Metrics/MethodLength:
   Max: 30
@@ -49,6 +49,15 @@ Style/NumericPredicate:
   Enabled: false
 
 Style/MinMaxComparison:
+  Enabled: false
+
+Style/EmptyClassDefinition:
+  Enabled: false
+
+Style/OneClassPerFile:
+  Enabled: false
+
+Layout/MultilineMethodCallIndentation:
   Enabled: false
 
 Naming/PredicateMethod:

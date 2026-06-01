@@ -31,144 +31,27 @@
         />
       </div>
     </div>
-    <div
-      v-if="field?.type && (isSelected || isNameFocus) && !isInMultiSelection"
-      class="absolute bg-white rounded-t border overflow-visible whitespace-nowrap flex z-10 field-area-controls"
-      style="top: -25px; height: 25px"
-      @mousedown.stop
-      @pointerdown.stop
-    >
-      <FieldSubmitter
-        v-if="field.type != 'heading' && field.type != 'strikethrough'"
-        v-model="field.submitter_uuid"
-        class="border-r roles-dropdown"
-        :compact="true"
-        :editable="editable && (!defaultField || defaultField.role !== submitter?.name)"
-        :allow-add-new="!defaultSubmitters.length"
-        :menu-classes="'dropdown-content bg-white menu menu-xs p-2 shadow rounded-box w-52 rounded-t-none -left-[1px] mt-[1px]'"
-        :submitters="template.submitters"
-        @update:model-value="save"
-        @click="selectedAreasRef.value = [area]"
-      />
-      <FieldType
-        v-model="field.type"
-        :button-width="27"
-        :editable="editable && !defaultField"
-        :button-classes="'px-1'"
-        :menu-classes="'bg-white rounded-t-none'"
-        @update:model-value="[maybeUpdateOptions(), save()]"
-        @click="selectedAreasRef.value = [area]"
-      />
-      <span
-        v-if="field.type !== 'checkbox' || field.name"
-        ref="name"
-        :contenteditable="editable && !defaultField && field.type !== 'heading'"
-        dir="auto"
-        class="pr-1 cursor-text outline-none block"
-        style="min-width: 2px"
-        @paste.prevent="onPaste"
-        @keydown.enter.prevent="onNameEnter"
-        @focus="onNameFocus"
-        @blur="onNameBlur"
-      >{{ optionIndexText }} {{ (defaultField ? (defaultField.title || field.title || field.name) : field.name) || defaultName }}</span>
-      <div
-        v-if="isSettingsFocus || isSelectInput || (isValueInput && field.type !== 'heading') || (isNameFocus && !['checkbox', 'phone'].includes(field.type))"
-        class="flex items-center ml-1.5"
-      >
-        <input
-          v-if="!isValueInput && !isSelectInput"
-          :id="`required-checkbox-${field.uuid}`"
-          v-model="field.required"
-          type="checkbox"
-          class="checkbox checkbox-xs no-animation rounded"
-          @mousedown.prevent
-        >
-        <label
-          v-if="!isValueInput && !isSelectInput"
-          :for="`required-checkbox-${field.uuid}`"
-          class="label text-xs"
-          @click.prevent="field.required = !field.required"
-          @mousedown.prevent
-        >{{ t('required') }}</label>
-        <input
-          v-if="isValueInput || isSelectInput"
-          :id="`readonly-checkbox-${field.uuid}`"
-          type="checkbox"
-          class="checkbox checkbox-xs no-animation rounded"
-          :checked="!(field.readonly ?? true)"
-          @change="field.readonly = !(field.readonly ?? true)"
-          @mousedown.prevent
-        >
-        <label
-          v-if="isValueInput || isSelectInput"
-          :for="`readonly-checkbox-${field.uuid}`"
-          class="label text-xs"
-          @click.prevent="field.readonly = !(field.readonly ?? true)"
-          @mousedown.prevent
-        >{{ t('editable') }}</label>
-        <span
-          v-if="field.type !== 'payment' && !isValueInput"
-          class="dropdown dropdown-end field-area-settings-dropdown"
-          @mouseenter="renderDropdown = true"
-          @touchstart="renderDropdown = true"
-        >
-          <label
-            ref="settingsButton"
-            tabindex="0"
-            :title="t('settings')"
-            class="cursor-pointer flex items-center"
-            style="height: 25px"
-            @focus="isSettingsFocus = true"
-            @blur="maybeBlurSettings"
-          >
-            <IconDotsVertical class="w-5 h-5" />
-          </label>
-          <ul
-            v-if="renderDropdown"
-            ref="settingsDropdown"
-            tabindex="0"
-            class="dropdown-content menu menu-xs px-2 pb-2 pt-1 shadow rounded-box w-52 z-10 rounded-t-none"
-            :style="{ backgroundColor: 'white' }"
-            @dragstart.prevent.stop
-            @click="closeDropdown"
-            @focusout="maybeBlurSettings"
-          >
-            <FieldSettings
-              v-if="isMobile"
-              :field="field"
-              :default-field="defaultField"
-              :editable="editable"
-              :background-color="'white'"
-              :with-required="false"
-              :with-areas="false"
-              :with-signature-id="withSignatureId"
-              :with-prefillable="withPrefillable"
-              @click-formula="isShowFormulaModal = true"
-              @click-font="isShowFontModal = true"
-              @click-description="isShowDescriptionModal = true"
-              @add-custom-field="$emit('add-custom-field')"
-              @click-condition="isShowConditionsModal = true"
-              @save="save"
-              @scroll-to="[selectedAreasRef.value = [$event], $emit('scroll-to', $event)]"
-            />
-            <div
-              v-else
-              class="whitespace-normal"
-            >
-              The dots menu is retired in favor of the field context menu. Right-click the field to access field settings. Double-click the field to set a default value.
-            </div>
-          </ul>
-        </span>
-      </div>
-      <button
-        v-else-if="editable"
-        class="pr-1"
-        :title="t('remove')"
-        @click.prevent="$emit('remove')"
-      >
-        <IconX width="14" />
-      </button>
-    </div>
+    <AreaTitle
+      ref="title"
+      :area="area"
+      :field="field"
+      :template="template"
+      :selected-areas-ref="selectedAreasRef"
+      :get-field-type-index="getFieldTypeIndex"
+      :default-field="defaultField"
+      :with-signature-id="withSignatureId"
+      :with-prefillable="withPrefillable"
+      :default-submitters="defaultSubmitters"
+      :editable="editable"
+      :is-mobile="isMobile"
+      :is-value-input="isValueInput"
+      :is-select-input="isSelectInput"
+      @change="save"
+      @remove="$emit('remove')"
+      @scroll-to="$emit('scroll-to', $event)"
+      @add-custom-field="$emit('add-custom-field')"
+      @click-title="$emit('click-title')"
+    />
     <div
       ref="touchValueTarget"
       class="flex h-full w-full field-area"
@@ -231,7 +114,7 @@
           <div
             ref="textContainer"
             class="flex items-center px-0.5"
-            :style="{ color: field.preferences?.color }"
+            :style="{ color: isConditionMatch ? field.preferences?.color : '#9ca3af' }"
             :class="{ 'w-full h-full': isWFullType }"
           >
             <IconCheck
@@ -249,13 +132,13 @@
               />
             </template>
             <span
-              v-else-if="field.type === 'number' && !isValueInput && (field.default_value || field.default_value == 0)"
+              v-else-if="field.type === 'number' && !isContenteditable && (displayValue || displayValue == 0)"
               class="whitespace-pre-wrap"
-            >{{ formatNumber(field.default_value, field.preferences?.format) }}</span>
+            >{{ formatNumber(displayValue, field.preferences?.format) }}</span>
             <span
               v-else-if="field.default_value === '{{date}}'"
             >
-              {{ t('signing_date') }}
+              {{ /[HhAasz]/.test(field.preferences?.format || '') ? t('signing_date_and_time') : t('signing_date') }}
             </span>
             <div
               v-else-if="field.type === 'cells' && field.default_value"
@@ -301,12 +184,12 @@
               :contenteditable="isValueInput"
               class="whitespace-pre-wrap outline-none empty:before:content-[attr(placeholder)] before:text-base-content/30"
               :class="{ 'cursor-text': isValueInput }"
-              :placeholder="withFieldPlaceholder && !isValueInput ? defaultField?.title || field.title || field.name || defaultName : (field.type === 'date' ? field.preferences?.format || t('type_value') : t('type_value'))"
+              :placeholder="withFieldPlaceholder && !isValueInput ? defaultField?.title || field.title || field.name || defaultName : (isConditionMatch ? (field.type === 'date' ? field.preferences?.format || t('type_value') : t('type_value')) : '')"
               @blur="onDefaultValueBlur"
               @focus="selectedAreasRef.value = [area]"
               @paste.prevent="onPaste"
               @keydown.enter="onDefaultValueEnter"
-            >{{ field.default_value }}</span>
+            >{{ displayValue }}</span>
           </div>
         </div>
         <component
@@ -333,85 +216,20 @@
       @mousedown.stop="startResize"
       @touchstart="startTouchResize"
     />
-    <Teleport
-      v-if="isShowFormulaModal"
-      :to="modalContainerEl"
-    >
-      <FormulaModal
-        :field="field"
-        :editable="editable && !defaultField"
-        :default-field="defaultField"
-        :build-default-name="buildDefaultName"
-        @save="save"
-        @close="isShowFormulaModal = false"
-      />
-    </Teleport>
-    <Teleport
-      v-if="isShowFontModal"
-      :to="modalContainerEl"
-    >
-      <FontModal
-        :field="field"
-        :editable="editable && !defaultField"
-        :default-field="defaultField"
-        :build-default-name="buildDefaultName"
-        @save="save"
-        @close="isShowFontModal = false"
-      />
-    </Teleport>
-    <Teleport
-      v-if="isShowConditionsModal"
-      :to="modalContainerEl"
-    >
-      <ConditionsModal
-        :item="field"
-        :build-default-name="buildDefaultName"
-        :default-field="defaultField"
-        @save="save"
-        @close="isShowConditionsModal = false"
-      />
-    </Teleport>
-    <Teleport
-      v-if="isShowDescriptionModal"
-      :to="modalContainerEl"
-    >
-      <DescriptionModal
-        :field="field"
-        :editable="editable && !defaultField"
-        :default-field="defaultField"
-        :build-default-name="buildDefaultName"
-        @save="save"
-        @close="isShowDescriptionModal = false"
-      />
-    </Teleport>
   </div>
 </template>
 
 <script>
-import FieldSubmitter from './field_submitter'
 import FieldType from './field_type'
 import Field from './field'
-import FieldSettings from './field_settings'
-import FormulaModal from './formula_modal'
-import FontModal from './font_modal'
-import ConditionsModal from './conditions_modal'
-import DescriptionModal from './description_modal'
-import { IconX, IconCheck, IconDotsVertical } from '@tabler/icons-vue'
-import { v4 } from 'uuid'
+import AreaTitle from './area_title'
+import { IconCheck } from '@tabler/icons-vue'
 
 export default {
   name: 'FieldArea',
   components: {
-    FieldType,
     IconCheck,
-    FieldSettings,
-    FormulaModal,
-    FontModal,
-    IconDotsVertical,
-    DescriptionModal,
-    ConditionsModal,
-    FieldSubmitter,
-    IconX
+    AreaTitle
   },
   inject: ['template', 'save', 't', 'isInlineSize', 'selectedAreasRef', 'isCmdKeyRef', 'getFieldTypeIndex'],
   props: {
@@ -423,6 +241,16 @@ export default {
       type: Boolean,
       required: false,
       default: false
+    },
+    conditionalFieldIndex: {
+      type: Object,
+      required: false,
+      default: () => ({})
+    },
+    formulaValuesIndex: {
+      type: Object,
+      required: false,
+      default: () => ({})
     },
     isDraw: {
       type: Boolean,
@@ -490,20 +318,13 @@ export default {
       default: false
     }
   },
-  emits: ['start-resize', 'stop-resize', 'start-drag', 'stop-drag', 'remove', 'scroll-to', 'add-custom-field'],
+  emits: ['start-resize', 'stop-resize', 'start-drag', 'stop-drag', 'remove', 'scroll-to', 'add-custom-field', 'click-title'],
   data () {
     return {
-      isShowFormulaModal: false,
-      isShowFontModal: false,
-      isShowConditionsModal: false,
       isContenteditable: false,
-      isSettingsFocus: false,
-      isShowDescriptionModal: false,
       isResize: false,
       isDragged: false,
       isMoved: false,
-      renderDropdown: false,
-      isNameFocus: false,
       isHeadingSelected: false,
       textOverflowChars: 0,
       dragFrom: { x: 0, y: 0 }
@@ -513,11 +334,27 @@ export default {
     fieldNames: FieldType.computed.fieldNames,
     fieldLabels: FieldType.computed.fieldLabels,
     fieldIcons: FieldType.computed.fieldIcons,
+    isConditionMatch () {
+      return !this.inputMode || this.conditionalFieldIndex[this.field.uuid] !== false
+    },
+    displayValue () {
+      if (this.field.preferences?.formula && this.field.type !== 'payment') {
+        const computed = this.formulaValuesIndex[this.field.uuid]
+
+        if (computed != null) {
+          return computed
+        }
+      }
+
+      return this.field.default_value
+    },
     bgClasses () {
       if (this.field.type === 'heading') {
         return 'bg-gray-50'
       } else if (this.field.type === 'strikethrough') {
         return 'bg-transparent'
+      } else if (!this.isConditionMatch) {
+        return 'bg-gray-100'
       } else {
         return this.bgColors[this.submitterIndex % this.bgColors.length]
       }
@@ -527,6 +364,8 @@ export default {
         return ''
       } else if (this.field.type === 'strikethrough') {
         return 'border-dashed border-gray-300'
+      } else if (!this.isConditionMatch) {
+        return 'border-gray-300'
       } else {
         return this.borderColors[this.submitterIndex % this.borderColors.length]
       }
@@ -580,7 +419,7 @@ export default {
       return this.basePageWidth / 612.0
     },
     isDefaultValuePresent () {
-      return this.field?.default_value || this.field?.default_value === 0
+      return this.field?.default_value || this.field?.default_value === 0 || this.displayValue || this.displayValue === 0
     },
     isSelectInput () {
       return this.inputMode && (this.field.type === 'select' || (this.field.type === 'radio' && this.field.areas?.length < 2))
@@ -589,11 +428,10 @@ export default {
       return this.inputMode && (this.field.type === 'checkbox' || (['radio', 'multiple'].includes(this.field.type) && this.area.option_uuid))
     },
     isValueInput () {
+      if (this.inputMode && this.field.preferences?.formula) return false
+
       return (this.field.type === 'heading' && this.isHeadingSelected) || this.isContenteditable ||
         (this.inputMode && (['text', 'number'].includes(this.field.type) || (this.field.type === 'date' && this.field.default_value !== '{{date}}')))
-    },
-    modalContainerEl () {
-      return this.$el.getRootNode().querySelector('#docuseal_modal_container')
     },
     defaultName () {
       return this.buildDefaultName(this.field)
@@ -614,13 +452,6 @@ export default {
         'font-times': this.field.preferences.font === 'Times',
         'font-bold': ['bold_italic', 'bold'].includes(this.field.preferences.font_type),
         italic: ['bold_italic', 'italic'].includes(this.field.preferences.font_type)
-      }
-    },
-    optionIndexText () {
-      if (this.area.option_uuid && this.field.options) {
-        return `${this.field.options.findIndex((o) => o.uuid === this.area.option_uuid) + 1}.`
-      } else {
-        return ''
       }
     },
     cells () {
@@ -705,16 +536,13 @@ export default {
   },
   methods: {
     buildDefaultName: Field.methods.buildDefaultName,
-    closeDropdown () {
-      this.$el.getRootNode().activeElement.blur()
-    },
     buildAreaOptionValue (area) {
       const option = this.optionsUuidIndex[area.option_uuid]
 
       return option?.value || `${this.t('option')} ${this.field.options.indexOf(option) + 1}`
     },
     maybeToggleDefaultValue () {
-      if (!this.editable || this.isCmdKeyRef.value) {
+      if (!this.editable || this.isCmdKeyRef.value || this.field.preferences?.formula) {
         return
       }
 
@@ -762,6 +590,10 @@ export default {
       }
     },
     focusValueInput (e) {
+      if (this.inputMode && this.field.type === 'number' && !this.isContenteditable && !this.field.preferences?.formula) {
+        this.isContenteditable = true
+      }
+
       this.$nextTick(() => {
         if (this.$refs.defaultValue && this.$refs.defaultValue !== document.activeElement) {
           this.$refs.defaultValue.focus()
@@ -788,25 +620,12 @@ export default {
         return new Intl.NumberFormat('de-DE').format(number)
       } else if (format === 'space') {
         return new Intl.NumberFormat('fr-FR').format(number)
+      } else if (format === 'percent') {
+        return `${number}%`
+      } else if (format === 'percent_space') {
+        return `${String(number).replace('.', ',')} %`
       } else {
         return number
-      }
-    },
-    maybeBlurSettings (e) {
-      if (!e.relatedTarget || !this.$refs.settingsDropdown.contains(e.relatedTarget)) {
-        this.isSettingsFocus = false
-      }
-    },
-    onNameFocus (e) {
-      this.selectedAreasRef.value = [this.area]
-
-      this.isNameFocus = true
-      this.$refs.name.style.minWidth = this.$refs.name.clientWidth + 'px'
-
-      if (!this.field.name) {
-        setTimeout(() => {
-          this.$refs.name.innerText = ' '
-        }, 1)
       }
     },
     startResizeCell (e) {
@@ -843,54 +662,13 @@ export default {
         }
       }
     },
-    maybeUpdateOptions () {
-      delete this.field.default_value
-
-      if (!['radio', 'multiple', 'select'].includes(this.field.type)) {
-        delete this.field.options
-      }
-
-      if (this.field.type === 'heading') {
-        this.field.readonly = true
-      }
-
-      if (this.field.type === 'strikethrough') {
-        this.field.readonly = true
-        this.field.default_value = true
-      }
-
-      if (['select', 'multiple', 'radio'].includes(this.field.type)) {
-        this.field.options ||= [{ value: '', uuid: v4() }]
-      }
-
-      (this.field.areas || []).forEach((area) => {
-        if (this.field.type === 'cells') {
-          area.cell_w = area.w * 2 / Math.floor(area.w / area.h)
-        } else {
-          delete area.cell_w
-        }
-      })
-    },
-    onNameBlur (e) {
-      if (e.relatedTarget === this.$refs.settingsButton) {
-        this.isSettingsFocus = true
-      }
-
-      const text = this.$refs.name.innerText.trim()
-
-      this.isNameFocus = false
-      this.$refs.name.style.minWidth = ''
-
-      if (text) {
-        this.field.name = text
-      } else {
-        this.field.name = ''
-        this.$refs.name.innerText = this.defaultName
-      }
-
-      this.save()
-    },
     onDefaultValueBlur (e) {
+      if (this.field.preferences?.formula) {
+        this.isContenteditable = false
+
+        return
+      }
+
       const text = this.$refs.defaultValue.innerText.trim()
 
       this.isContenteditable = false
@@ -927,9 +705,6 @@ export default {
         this.$refs.defaultValue.blur()
       }
     },
-    onNameEnter (e) {
-      this.$refs.name.blur()
-    },
     resize (e) {
       if (e.target.id === 'mask') {
         this.area.w = e.offsetX / e.target.clientWidth - this.area.x
@@ -943,14 +718,6 @@ export default {
             }
           })
         }
-      }
-    },
-    drag (e) {
-      if (e.target.id === 'mask' && this.editable) {
-        this.isDragged = true
-
-        this.area.x = (e.offsetX - this.dragFrom.x) / e.target.clientWidth
-        this.area.y = (e.offsetY - this.dragFrom.y) / e.target.clientHeight
       }
     },
     startTouchDrag (e) {
@@ -997,6 +764,8 @@ export default {
       this.$el.getRootNode().removeEventListener('touchend', this.stopTouchDrag)
 
       this.maybeChangeAreaPage(this.area)
+
+      this.clampAreaBounds(this.area)
 
       if (this.isDragged) {
         this.save()
@@ -1065,6 +834,8 @@ export default {
 
       this.maybeChangeAreaPage(this.area)
 
+      this.clampAreaBounds(this.area)
+
       if (this.isMoved) {
         this.save()
       }
@@ -1089,18 +860,6 @@ export default {
         area.y = area.y - 1 - (16.0 / this.$parent.$refs.mask.previousSibling.offsetHeight)
       }
     },
-    stopDrag () {
-      this.$el.getRootNode().removeEventListener('mousemove', this.drag)
-      this.$el.getRootNode().removeEventListener('mouseup', this.stopDrag)
-
-      if (this.isDragged) {
-        this.save()
-      }
-
-      this.isDragged = false
-
-      this.$emit('stop-drag')
-    },
     startResize () {
       if (!this.selectedAreasRef.value.includes(this.area)) {
         this.selectedAreasRef.value = [this.area]
@@ -1115,6 +874,8 @@ export default {
       this.$el.getRootNode().removeEventListener('mousemove', this.resize)
       this.$el.getRootNode().removeEventListener('mouseup', this.stopResize)
 
+      this.clampAreaBounds(this.area)
+
       this.$emit('stop-resize')
 
       this.save()
@@ -1124,7 +885,7 @@ export default {
         this.selectedAreasRef.value = [this.area]
       }
 
-      this.$refs?.name?.blur()
+      this.$refs?.title?.$refs?.name?.blur()
 
       e.preventDefault()
 
@@ -1153,9 +914,17 @@ export default {
       this.$el.getRootNode().removeEventListener('touchmove', this.touchResize)
       this.$el.getRootNode().removeEventListener('touchend', this.stopTouchResize)
 
+      this.clampAreaBounds(this.area)
+
       this.$emit('stop-resize')
 
       this.save()
+    },
+    clampAreaBounds (area) {
+      area.x = Math.min(Math.max(area.x, 0), 1)
+      area.y = Math.min(Math.max(area.y, 0), 1)
+      area.w = Math.min(Math.max(area.w, 0), 1)
+      area.h = Math.min(Math.max(area.h, 0), 1)
     }
   }
 }

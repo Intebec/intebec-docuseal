@@ -6,17 +6,20 @@ module Templates
 
     # rubocop:disable Metrics
     def call(original_template, author:, external_id: nil, name: nil, folder_name: nil)
-      template = original_template.account.templates.new
+      template = author.account.templates.new
 
       template.external_id = external_id
       template.shared_link = original_template.shared_link
+      template.variables_schema = original_template.variables_schema
       template.author = author
       template.name = name.presence || "#{original_template.name} (#{I18n.t('clone')})"
 
       if folder_name.present?
         template.folder = TemplateFolders.find_or_create_by_name(author, folder_name)
-      else
+      elsif author.account_id == original_template.account_id
         template.folder_id = original_template.folder_id
+      else
+        template.folder = author.account.default_template_folder
       end
 
       template.submitters, template.fields, template.schema, template.preferences =

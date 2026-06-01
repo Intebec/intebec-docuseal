@@ -21,7 +21,7 @@
             <%= link_to t('email'), settings_email_index_path, class: 'text-base hover:bg-base-300' %>
           </li>
         <% end %>
-        <% if Whitelabel.setting_section_visible?(current_user.role, 'storage') && can?(:read, EncryptedConfig.new(key: EncryptedConfig::FILES_STORAGE_KEY, account: current_account)) && true_user == current_user %>
+        <% if Whitelabel.setting_section_visible?(current_user.role, 'storage') && can?(:read, EncryptedConfig.new(key: EncryptedConfig::FILES_STORAGE_KEY, account: current_account)) && true_user == current_user && ENV['S3_ATTACHMENTS_BUCKET'].blank? && ENV['GCS_BUCKET'].blank? && ENV['AZURE_CONTAINER'].blank? %>
           <li>
             <%= link_to t('storage'), settings_storage_index_path, class: 'text-base hover:bg-base-300' %>
           </li>
@@ -65,7 +65,7 @@
       <% if !Docuseal.demo? && can?(:manage, EncryptedConfig) && (current_user == true_user || current_account.testing?) %>
         <%= render 'shared/settings_nav_extra2' %>
         <% if (can?(:manage, EncryptedConfig) && current_user == true_user) || (current_user != true_user && current_account.testing?) %>
-          <%= form_for '', url: testing_account_path, method: current_account.testing? ? :delete : :get, html: { class: 'w-full' } do |f| %>
+          <%= form_for '', url: testing_account_path, method: current_account.testing? ? :delete : :post, html: { class: 'w-full' } do |f| %>
             <li>
               <label class="flex items-center text-base hover:bg-base-300 w-full justify-between" for="testing_toggle">
                 <span class="mr-2 w-full">

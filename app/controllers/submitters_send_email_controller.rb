@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
 class SubmittersSendEmailController < ApplicationController
-  load_and_authorize_resource :submitter, id_param: :submitter_slug, find_by: :slug
+  load_and_authorize_resource :submitter
 
   def create
+    authorize!(:update, @submitter)
+
     if Docuseal.multitenant? && SubmissionEvent.exists?(submitter: @submitter,
                                                         event_type: 'send_email',
                                                         created_at: 10.hours.ago..Time.current)

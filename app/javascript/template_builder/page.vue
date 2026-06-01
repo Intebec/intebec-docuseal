@@ -37,6 +37,8 @@
         :ref="setAreaRefs"
         :area="item.area"
         :input-mode="inputMode"
+        :conditional-field-index="conditionalFieldIndex"
+        :formula-values-index="formulaValuesIndex"
         :page-width="width"
         :page-height="height"
         :field="item.field"
@@ -55,6 +57,7 @@
         @scroll-to="$emit('scroll-to', $event)"
         @add-custom-field="$emit('add-custom-field', $event)"
         @contextmenu="openAreaContextMenu($event, item.area, item.field)"
+        @click-title="closeContextMenu"
       />
       <FieldArea
         v-for="(area, index) in newAreas"
@@ -179,6 +182,16 @@ export default {
       type: Boolean,
       required: false,
       default: false
+    },
+    conditionalFieldIndex: {
+      type: Object,
+      required: false,
+      default: () => ({})
+    },
+    formulaValuesIndex: {
+      type: Object,
+      required: false,
+      default: () => ({})
     },
     defaultFields: {
       type: Array,

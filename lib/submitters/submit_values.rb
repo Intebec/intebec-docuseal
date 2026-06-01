@@ -86,9 +86,7 @@ module Submitters
         submitter.values = maybe_remove_condition_values(submitter, required_field_uuids_acc:)
       end
 
-      submitter.values = submitter.values.transform_values do |v|
-        v == '{{date}}' ? Time.current.in_time_zone(submitter.account.timezone).to_date.to_s : v
-      end
+      submitter.values = replace_current_date_placeholders(submitter)
 
       required_field_uuids_acc.each do |uuid|
         next if submitter.values[uuid].present?
@@ -107,23 +105,32 @@ module Submitters
       reason_field_uuid = params[:with_reason]
       signature_field_uuid = values.except(reason_field_uuid).keys.first
 
-      signature_field = submitter.submission.template_fields.find { |e| e['uuid'] == signature_field_uuid }
+      signature_field = submitter.submission.template_fields.find do |e|
+        e['uuid'] == signature_field_uuid && e['submitter_uuid'] == submitter.uuid
+      end
 
-      signature_field['preferences'] ||= {}
-      signature_field['preferences']['reason_field_uuid'] = reason_field_uuid
+      reason_field = submitter.submission.template_fields.find do |e|
+        e['uuid'] == reason_field_uuid && e['submitter_uuid'] == submitter.uuid
+      end
 
-      reason_field = submitter.submission.template_fields.find { |e| e['uuid'] == reason_field_uuid }
-
-      unless reason_field
+      if reason_field
+        if reason_field.dig('preferences', 'signature_field_uuid') != signature_field['uuid']
+          raise ValidationError, 'Invalid field'
+        end
+      else
         reason_field = { 'type' => 'text',
                          'uuid' => reason_field_uuid,
                          'name' => I18n.t(:reason),
                          'readonly' => true,
+                         'preferences' => { 'signature_field_uuid' => signature_field['uuid'] },
                          'submitter_uuid' => submitter.uuid }
 
         submitter.submission.template_fields.insert(submitter.submission.template_fields.index(signature_field) + 1,
                                                     reason_field)
       end
+
+      signature_field['preferences'] ||= {}
+      signature_field['preferences']['reason_field_uuid'] = reason_field_uuid
 
       submitter.submission.save!
 
@@ -185,7 +192,7 @@ module Submitters
 
         next if value.blank?
 
-        acc[field['uuid']] = template_default_value_for_submitter(value, submitter, with_time: true)
+        acc[field['uuid']] = template_default_value_for_submitter(value, submitter, field:, with_time: true)
       end
 
       default_values.compact_blank.merge(submitter.values)
@@ -239,7 +246,20 @@ module Submitters
       0
     end
 
-    def template_default_value_for_submitter(value, submitter, with_time: false)
+    def replace_current_date_placeholders(submitter)
+      submitter.values.each_with_object({}) do |(uuid, v), acc|
+        acc[uuid] =
+          if v == '{{date}}'
+            field = submitter.submission.fields_uuid_index[uuid]
+
+            TimeUtils.current_date_value(field&.dig('preferences', 'format'), submitter.account.timezone)
+          else
+            v
+          end
+      end
+    end
+
+    def template_default_value_for_submitter(value, submitter, with_time: false, field: nil)
       return if value.blank?
       return if submitter.blank?
 
@@ -248,7 +268,8 @@ module Submitters
       replace_default_variables(value,
                                 submitter.attributes.merge('role' => role),
                                 submitter.submission,
-                                with_time:)
+                                with_time:,
+                                field:)
     end
 
     def maybe_remove_condition_values(submitter, required_field_uuids_acc: nil)
@@ -385,7 +406,7 @@ module Submitters
     end
     # rubocop:enable Metrics
 
-    def replace_default_variables(value, attrs, submission, with_time: false)
+    def replace_default_variables(value, attrs, submission, with_time: false, field: nil)
       return value if value.in?([true, false]) || value.is_a?(Numeric) || value.is_a?(Array)
       return if value.blank?
 
@@ -403,7 +424,7 @@ module Submitters
         when 'hour', 'minute', 'day', 'month', 'year'
           with_time ? Time.current.in_time_zone(submission.account.timezone).strftime(STRFTIME_MAP[key]) : e
         when 'date'
-          with_time ? Time.current.in_time_zone(submission.account.timezone).to_date.to_s : e
+          with_time ? TimeUtils.current_date_value(field&.dig('preferences', 'format'), submission.account.timezone) : e
         when 'role', 'email', 'phone', 'name'
           attrs[key] || e
         else
@@ -454,6 +475,9 @@ module Submitters
     end
 
     def validate_value!(_value, field, _params, submitter, _request)
+      raise ValidationError, 'Missing field' unless field
+      raise ValidationError, 'Invalid field' if field['submitter_uuid'] != submitter.uuid
+
       if field['readonly'] == true
         Rollbar.warning("Readonly field #{submitter.id}: #{field['uuid']}") if defined?(Rollbar)
 

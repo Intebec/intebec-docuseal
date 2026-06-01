@@ -2,7 +2,7 @@
 
 class ErrorsController < ActionController::Base
   ENTERPRISE_FEATURE_MESSAGE =
-    "This feature is available in Pro Edition: #{Whitelabel.website_url}/pricing"
+    "This feature is available in Pro Edition: #{Whitelabel.website_url}/pricing".freeze
 
   ENTERPRISE_PATHS = [
     '/submissions/html',
@@ -40,7 +40,7 @@ class ErrorsController < ActionController::Base
         render json: { status: error_status_code, error: }.compact, status: error_status_code
       end
 
-      f.html { render error_status_code.to_s, status: error_status_code }
+      f.any { render error_status_code.to_s, status: error_status_code }
     end
   end
 
@@ -51,7 +51,7 @@ class ErrorsController < ActionController::Base
     headers['Access-Control-Allow-Methods'] = 'POST, GET, PUT, PATCH, DELETE, OPTIONS'
     headers['Access-Control-Allow-Headers'] = '*'
     headers['Access-Control-Max-Age'] = '1728000'
-    headers['Access-Control-Allow-Credentials'] = true
+    headers['Access-Control-Allow-Credentials'] = 'true'
   end
 
   def error_status_code

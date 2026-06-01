@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Accounts
-  LINK_EXPIRES_AT = 40.minutes
+  LINK_EXPIRES_AT = ENV.fetch('FILE_URLS_EXPIRE_MINUTES', '40').to_i.minutes
 
   module_function
 
@@ -175,6 +175,7 @@ module Accounts
 
   def can_send_emails?(_account, **_params)
     return true if Docuseal.multitenant?
+    return true if Rails.env.development?
     return true if ENV['SMTP_ADDRESS'].present?
 
     EncryptedConfig.exists?(key: EncryptedConfig::EMAIL_SMTP_KEY)

@@ -7,7 +7,7 @@ class Ability
   # All condition procs MUST return hashes (not AR relations) so that
   # class-level can?/authorize! checks work (e.g. `authorize! :index, Template`).
   RESOURCE_MAP = {
-    'templates'   => [
+    'templates' => [
       [Template,         :read,    ->(u) { { account_id: u.account_id } }],
       [Template,         :create,  ->(u) { { account_id: u.account_id } }],
       [Template,         :update,  ->(u) { { account_id: u.account_id } }],
@@ -46,6 +46,9 @@ class Ability
     can :manage, User, id: user.id
     can :read,   Account, id: user.account_id
     can :manage, AccessToken, user_id: user.id
+    can :manage, McpToken, user_id: user.id
+
+    can :manage, :mcp
   end
 
   def apply_role_permissions(user)
@@ -62,7 +65,7 @@ class Ability
 
   def grant_if_allowed(user, model, cancan_action, condition_proc, config_actions)
     needed = action_to_config(cancan_action)
-    return unless (needed & config_actions).any?
+    return unless needed.intersect?(config_actions)
 
     conditions = condition_proc.call(user)
     granted = map_cancan_actions(cancan_action, config_actions)
@@ -76,14 +79,15 @@ class Ability
 
   # Map a CanCan :manage action to the individual config actions that are allowed.
   def map_cancan_actions(cancan_action, config_actions)
-    if cancan_action == :manage
+    case cancan_action
+    when :manage
       mapped = []
       mapped << :read    if config_actions.include?('read')
       mapped << :create  if config_actions.include?('create')
       mapped << :update  if config_actions.include?('update')
       mapped << :destroy if config_actions.include?('delete')
       mapped
-    elsif cancan_action == :destroy
+    when :destroy
       config_actions.include?('delete') ? [:destroy] : []
     else
       config_actions.include?(cancan_action.to_s) ? [cancan_action] : []

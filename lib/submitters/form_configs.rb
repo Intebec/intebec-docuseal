@@ -11,6 +11,7 @@ module Submitters
        AccountConfig::FORM_PREFILL_SIGNATURE_KEY,
        AccountConfig::WITH_SIGNATURE_ID,
        AccountConfig::ALLOW_TO_DECLINE_KEY,
+       AccountConfig::ALLOW_TO_DELEGATE_KEY,
        AccountConfig::ENFORCE_SIGNING_ORDER_KEY,
        AccountConfig::REQUIRE_SIGNING_REASON_KEY,
        AccountConfig::REUSE_SIGNATURE_KEY,
