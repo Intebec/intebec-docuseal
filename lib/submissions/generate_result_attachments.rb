@@ -37,7 +37,7 @@ module Submissions
       bold_italic: FONT_BOLD_NAME
     }.freeze
 
-    SIGN_REASON = "Signed by %<name>s with #{Whitelabel.brand_name}"
+    SIGN_REASON = "Signed by %<name>s with #{Whitelabel.brand_name}".freeze
 
     RTL_REGEXP = TextUtils::RTL_REGEXP
 

@@ -48,9 +48,9 @@
 #
 class User < ApplicationRecord
   ROLES = [
-    ADMIN_ROLE       = 'admin',
+    ADMIN_ROLE = 'admin',
     GESTIONNAIRE_ROLE = 'gestionnaire',
-    USER_ROLE        = 'user'
+    USER_ROLE = 'user'
   ].freeze
 
   # Config-driven role list.  Falls back to ROLES constant if no config.

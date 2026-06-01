@@ -2,7 +2,7 @@
 
 class ErrorsController < ActionController::Base
   ENTERPRISE_FEATURE_MESSAGE =
-    "This feature is available in Pro Edition: #{Whitelabel.website_url}/pricing"
+    "This feature is available in Pro Edition: #{Whitelabel.website_url}/pricing".freeze
 
   ENTERPRISE_PATHS = [
     '/submissions/html',

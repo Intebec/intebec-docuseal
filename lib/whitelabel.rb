@@ -44,39 +44,39 @@ module Whitelabel
   REFRESH_ON_ERROR = 5 * 60     # 5 min retry on transient failure
 
   THEME_DEFAULTS = {
-    'primary'           => '216 77% 52%',
-    'primary_focus'     => '216 77% 44%',
-    'primary_content'   => '0 0% 100%',
-    'secondary'         => '220 12% 45%',
-    'secondary_focus'   => '220 14% 36%',
+    'primary' => '216 77% 52%',
+    'primary_focus' => '216 77% 44%',
+    'primary_content' => '0 0% 100%',
+    'secondary' => '220 12% 45%',
+    'secondary_focus' => '220 14% 36%',
     'secondary_content' => '0 0% 100%',
-    'accent'            => '160 50% 40%',
-    'accent_focus'      => '160 50% 34%',
-    'accent_content'    => '0 0% 100%',
-    'neutral'           => '220 16% 12%',
-    'neutral_focus'     => '220 16% 8%',
-    'neutral_content'   => '0 0% 100%',
-    'base_100'          => '0 0% 100%',
-    'base_200'          => '220 14% 96%',
-    'base_300'          => '220 12% 93%',
-    'base_content'      => '220 14% 10%',
-    'info'              => '205 80% 50%',
-    'success'           => '154 55% 38%',
-    'warning'           => '38 88% 48%',
-    'error'             => '0 72% 50%',
-    'rounded_btn'       => '1.9rem',
-    'tab_border'        => '2px',
-    'tab_radius'        => '.5rem'
+    'accent' => '160 50% 40%',
+    'accent_focus' => '160 50% 34%',
+    'accent_content' => '0 0% 100%',
+    'neutral' => '220 16% 12%',
+    'neutral_focus' => '220 16% 8%',
+    'neutral_content' => '0 0% 100%',
+    'base_100' => '0 0% 100%',
+    'base_200' => '220 14% 96%',
+    'base_300' => '220 12% 93%',
+    'base_content' => '220 14% 10%',
+    'info' => '205 80% 50%',
+    'success' => '154 55% 38%',
+    'warning' => '38 88% 48%',
+    'error' => '0 72% 50%',
+    'rounded_btn' => '1.9rem',
+    'tab_border' => '2px',
+    'tab_radius' => '.5rem'
   }.freeze
 
   DEFAULT_STYLING_VARIABLES = {
-    'ib-bg'             => '220 14% 98%',
-    'ib-surface'        => '0 0% 100%',
-    'ib-surface-2'      => '220 14% 96%',
-    'ib-border'         => '220 10% 88%',
-    'ib-text'           => '220 14% 10%',
+    'ib-bg' => '220 14% 98%',
+    'ib-surface' => '0 0% 100%',
+    'ib-surface-2' => '220 14% 96%',
+    'ib-border' => '220 10% 88%',
+    'ib-text' => '220 14% 10%',
     'ib-text-secondary' => '220 8% 40%',
-    'ib-muted'          => '220 6% 55%'
+    'ib-muted' => '220 6% 55%'
   }.freeze
 
   # ── Mutable state (thread-safe) ─────────────────────────────────────────
@@ -102,6 +102,7 @@ module Whitelabel
     def config_source
       return :api  if @api_sourced
       return :test if @config && !CONFIG_PATH.file?
+
       :file
     end
 
@@ -201,9 +202,11 @@ module Whitelabel
     end
 
     def email_attribution_html
+      # rubocop:disable Style/FormatStringToken -- Rails i18n-style %{} tokens substituted via gsub
       raw = config.dig('email', 'attribution_html') ||
             'Sent with <a href="%{website}">%{brand}</a>.'
       raw.gsub('%{brand}', brand_name).gsub('%{website}', website_url)
+      # rubocop:enable Style/FormatStringToken
     end
 
     # =====================================================================
@@ -230,6 +233,7 @@ module Whitelabel
       config.dig('assets', 'favicon_ico') || '/favicon.ico'
     end
 
+    # rubocop:disable Naming/VariableNumber -- method names mirror the standard favicon pixel sizes
     def favicon_16
       config.dig('assets', 'favicon_16') || '/favicon-16x16.png'
     end
@@ -241,6 +245,7 @@ module Whitelabel
     def favicon_96
       config.dig('assets', 'favicon_96') || '/favicon-96x96.png'
     end
+    # rubocop:enable Naming/VariableNumber
 
     def apple_touch_icon
       config.dig('assets', 'apple_touch_icon') || '/apple-icon-180x180.png'
@@ -263,8 +268,10 @@ module Whitelabel
     # =====================================================================
 
     def sign_reason(name)
+      # rubocop:disable Style/FormatStringToken -- Rails i18n-style %{} token substituted via gsub
       template = config.dig('pdf', 'sign_reason') || 'Signed by %{name}'
       template.gsub('%{name}', name.to_s)
+      # rubocop:enable Style/FormatStringToken
     end
 
     def audit_trail_footer
@@ -309,11 +316,11 @@ module Whitelabel
     # =====================================================================
 
     def show_github_button?
-      dig_bool('features', 'show_github_button', false)
+      dig_bool('features', 'show_github_button')
     end
 
     def show_powered_by?
-      dig_bool('features', 'show_powered_by', false)
+      dig_bool('features', 'show_powered_by')
     end
 
     def powered_by_text
@@ -321,15 +328,15 @@ module Whitelabel
     end
 
     def show_ai_link?
-      dig_bool('features', 'show_ai_link', false)
+      dig_bool('features', 'show_ai_link')
     end
 
     def show_discord_link?
-      dig_bool('features', 'show_discord_link', false)
+      dig_bool('features', 'show_discord_link')
     end
 
     def show_pro_upsells?
-      dig_bool('features', 'show_pro_upsells', false)
+      dig_bool('features', 'show_pro_upsells')
     end
 
     # =====================================================================
@@ -360,33 +367,33 @@ module Whitelabel
     DEFAULT_ROLES = {
       'admin' => {
         'permissions' => {
-          'templates'   => %w[read create update delete],
+          'templates' => %w[read create update delete],
           'submissions' => %w[read create update delete],
-          'users'       => %w[read create update delete],
-          'settings'    => %w[read create update delete]
+          'users' => %w[read create update delete],
+          'settings' => %w[read create update delete]
         }
       },
       'gestionnaire' => {
         'permissions' => {
-          'templates'   => %w[read create update delete],
+          'templates' => %w[read create update delete],
           'submissions' => %w[read create update delete],
-          'users'       => %w[read],
-          'settings'    => %w[read]
+          'users' => %w[read],
+          'settings' => %w[read]
         }
       },
       'user' => {
         'permissions' => {
-          'templates'   => %w[read],
+          'templates' => %w[read],
           'submissions' => %w[read],
-          'users'       => [],
-          'settings'    => []
+          'users' => [],
+          'settings' => []
         }
       }
     }.freeze
 
     # All available roles (keys).  Order matters — first is the default.
     def roles
-      (config.dig('roles') || DEFAULT_ROLES).keys
+      (config['roles'] || DEFAULT_ROLES).keys
     end
 
     # The default role assigned to new users.
@@ -396,7 +403,7 @@ module Whitelabel
 
     # Full role definition hash for a given role slug.
     def role_definition(role_slug)
-      all = config.dig('roles') || DEFAULT_ROLES
+      all = config['roles'] || DEFAULT_ROLES
       all[role_slug.to_s] || {}
     end
 
@@ -489,23 +496,24 @@ module Whitelabel
       DEFAULT_STYLING_VARIABLES.merge(config.dig('styling', 'css_variables') || {})
     end
 
+    # rubocop:disable Metrics/MethodLength, Naming/VariableNumber
     def inline_css_variables
       vars = {
-        'wl-ib-primary'        => theme(:primary),
+        'wl-ib-primary' => theme(:primary),
         'wl-ib-primary-strong' => theme(:primary_focus),
-        'wl-ib-primary-soft'   => "#{theme(:primary)} / 0.12",
-        'wl-ib-neutral'        => theme(:neutral),
-        'wl-ib-neutral-soft'   => theme(:base_200),
-        'wl-p'  => theme(:primary),
+        'wl-ib-primary-soft' => "#{theme(:primary)} / 0.12",
+        'wl-ib-neutral' => theme(:neutral),
+        'wl-ib-neutral-soft' => theme(:base_200),
+        'wl-p' => theme(:primary),
         'wl-pf' => theme(:primary_focus),
         'wl-pc' => theme(:primary_content),
-        'wl-s'  => theme(:secondary),
+        'wl-s' => theme(:secondary),
         'wl-sf' => theme(:secondary_focus),
         'wl-sc' => theme(:secondary_content),
-        'wl-a'  => theme(:accent),
+        'wl-a' => theme(:accent),
         'wl-af' => theme(:accent_focus),
         'wl-ac' => theme(:accent_content),
-        'wl-n'  => theme(:neutral),
+        'wl-n' => theme(:neutral),
         'wl-nf' => theme(:neutral_focus),
         'wl-nc' => theme(:neutral_content),
         'wl-b1' => theme(:base_100),
@@ -524,13 +532,14 @@ module Whitelabel
       declarations = vars.map { |k, v| "--#{k}: #{v};" }.join(' ')
       ":root { #{declarations} }"
     end
+    # rubocop:enable Metrics/MethodLength, Naming/VariableNumber
 
     # =====================================================================
     # Config signature (file-based only)
     # =====================================================================
 
     def enforce_config_signature?
-      dig_bool('security', 'enforce_config_signature', false)
+      dig_bool('security', 'enforce_config_signature')
     end
 
     def config_signature
@@ -611,6 +620,7 @@ module Whitelabel
     # Remote config fetch (with retry)
     # =====================================================================
 
+    # rubocop:disable Metrics/AbcSize, Metrics/MethodLength, Metrics/BlockLength
     def fetch_remote_config
       licence_key = ENV.fetch('INTEBEC_LICENCE_KEY')
       secret_key  = ENV.fetch('INTEBEC_SECRET_KEY')
@@ -642,25 +652,19 @@ module Whitelabel
           read_timeout: API_TIMEOUT
         ) { |http| http.request(req) }
 
-        unless [200, 201].include?(resp.code.to_i)
-          raise ConfigError, "HTTP #{resp.code}"
-        end
+        raise ConfigError, "HTTP #{resp.code}" unless [200, 201].include?(resp.code.to_i)
 
         parsed = JSON.parse(resp.body)
         status = parsed['status'].to_s
 
-        unless %w[active trial].include?(status)
-          raise LicenceRevokedError, "Licence status: #{status}"
-        end
+        raise LicenceRevokedError, "Licence status: #{status}" unless %w[active trial].include?(status)
 
         remote_cfg = parsed['config']
         raise ConfigError, 'API returned no config payload' unless remote_cfg.is_a?(Hash)
 
         return remote_cfg
-
       rescue LicenceRevokedError
         raise # don't retry revocations
-
       rescue StandardError => e
         last_error = e.message
         delay = API_RETRY_DELAY * (2**attempt)
@@ -676,6 +680,7 @@ module Whitelabel
       raise ConfigError,
             "[Whitelabel] Dashboard unreachable after #{API_MAX_RETRIES} attempts: #{last_error}"
     end
+    # rubocop:enable Metrics/AbcSize, Metrics/MethodLength, Metrics/BlockLength
 
     def stable_instance_id
       @stable_instance_id ||= begin
@@ -697,13 +702,13 @@ module Whitelabel
       expected = raw.dig('security', 'config_signature').to_s.downcase
       actual   = OpenSSL::HMAC.hexdigest('SHA256', secret, canonical_payload(raw)).downcase
 
-      unless expected.length == 64 && secure_compare(actual, expected)
-        raise ConfigError, '[Whitelabel] Config signature mismatch — refusing to boot.'
-      end
+      return if expected.length == 64 && secure_compare(actual, expected)
+
+      raise ConfigError, '[Whitelabel] Config signature mismatch — refusing to boot.'
     end
 
     def canonical_payload(loaded)
-      copy = Marshal.load(Marshal.dump(loaded))
+      copy = loaded.deep_dup
       copy['security']&.delete('config_signature')
       JSON.generate(deep_sort_hash(copy))
     end
@@ -711,7 +716,7 @@ module Whitelabel
     def deep_sort_hash(value)
       case value
       when Hash
-        value.keys.sort.each_with_object({}) { |k, h| h[k] = deep_sort_hash(value[k]) }
+        value.keys.sort.index_with { |k| deep_sort_hash(value[k]) }
       when Array
         value.map { |v| deep_sort_hash(v) }
       else
@@ -719,17 +724,17 @@ module Whitelabel
       end
     end
 
-    def secure_compare(a, b)
-      return false unless a.bytesize == b.bytesize
+    def secure_compare(actual, expected)
+      return false unless actual.bytesize == expected.bytesize
 
-      ActiveSupport::SecurityUtils.secure_compare(a, b)
+      ActiveSupport::SecurityUtils.secure_compare(actual, expected)
     end
 
     # =====================================================================
     # Helpers
     # =====================================================================
 
-    def dig_bool(section, key, default = false)
+    def dig_bool(section, key, default: false)
       value = config.dig(section, key)
       value.nil? ? default : value
     end
