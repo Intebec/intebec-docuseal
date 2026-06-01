@@ -13,8 +13,24 @@
 # missing keys.  Without a valid config source the fallbacks return plain
 # upstream DocuSeal values — your branding only appears with YOUR config.
 #
+# Local config file resolution (first match wins):
+#   1. INTEBEC_CONFIG_PATH        — explicit absolute path.  PRODUCTION uses
+#                                   this (docker mounts the client config at
+#                                   /run/secrets/config.yml).
+#   2. INTEBEC_CLIENT=<name>      — loads config/clients/<name>.yml.  Lets you
+#                                   keep one file per client and switch between
+#                                   them in development without editing paths.
+#   3. dev / test default         — config/config.yml  (a gitignored file, or a
+#                                   symlink managed by `bin/use-client`).
+#   4. otherwise                  — /run/secrets/config.yml  (prod default).
+#
+# Per-client configs live in config/clients/*.yml and are gitignored so client
+# branding never lands in version control.  See config/config.example.yml for a
+# fully documented template and config/clients/README.md for the workflow.
+#
 # Env vars:
-#   INTEBEC_CONFIG_PATH   — override local file path  (default: /run/secrets/config.yml)
+#   INTEBEC_CONFIG_PATH   — explicit local file path  (highest priority)
+#   INTEBEC_CLIENT        — name of a config/clients/<name>.yml file  (dev)
 #   INTEBEC_LICENCE_KEY   — licence UUID  (required for API mode)
 #   INTEBEC_SECRET_KEY    — HMAC shared secret  (required for API mode)
 #   INTEBEC_DASHBOARD_URL — override Dashboard URL  (default: https://dashboard.intebec.ca)
@@ -31,9 +47,8 @@ module Whitelabel
   class ConfigError < StandardError; end
   class LicenceRevokedError < ConfigError; end
 
-  CONFIG_PATH = Pathname.new(
-    ENV.fetch('INTEBEC_CONFIG_PATH', '/run/secrets/config.yml')
-  ).freeze
+  # Default location for a mounted/secret config in production.
+  DEFAULT_CONFIG_PATH = '/run/secrets/config.yml'
 
   DASHBOARD_URL    = ENV.fetch('INTEBEC_DASHBOARD_URL', 'https://dashboard.intebec.ca').freeze
   CONFIG_ENDPOINT  = '/api/licences/config'
@@ -82,6 +97,7 @@ module Whitelabel
   # ── Mutable state (thread-safe) ─────────────────────────────────────────
   @mutex        = Mutex.new
   @config       = nil
+  @config_path  = nil
   @api_sourced  = false
   @next_refresh = Time.at(0).utc
 
@@ -95,13 +111,22 @@ module Whitelabel
     end
 
     def reload!
-      @mutex.synchronize { @config = nil }
+      @mutex.synchronize do
+        @config      = nil
+        @config_path = nil
+      end
       load_config!
+    end
+
+    # Resolved path of the active local config file.  Memoised; cleared by
+    # reload!.  See the file header for the resolution order.
+    def config_path
+      @config_path ||= resolve_config_path
     end
 
     def config_source
       return :api  if @api_sourced
-      return :test if @config && !CONFIG_PATH.file?
+      return :test if @config && !config_path.file?
 
       :file
     end
@@ -566,7 +591,7 @@ module Whitelabel
       @mutex.synchronize do
         return @config if @config # another thread beat us
 
-        if CONFIG_PATH.file?
+        if config_path.file?
           load_from_file!
         elsif Rails.env.test?
           load_test_defaults!
@@ -577,9 +602,41 @@ module Whitelabel
       @config
     end
 
+    # Resolve which local YAML file to load.  First match wins:
+    #   1. INTEBEC_CONFIG_PATH  (explicit path — production / docker)
+    #   2. INTEBEC_CLIENT       (config/clients/<name>.yml — dev switching)
+    #   3. config/config.yml    (dev / test default — symlink or local file)
+    #   4. /run/secrets/config.yml (prod default)
+    def resolve_config_path
+      explicit = ENV['INTEBEC_CONFIG_PATH'].to_s.strip
+      return Pathname.new(explicit) unless explicit.empty?
+
+      client = ENV['INTEBEC_CLIENT'].to_s.strip
+      return clients_dir.join("#{client}.yml") unless client.empty?
+
+      if defined?(Rails) && Rails.respond_to?(:env) && (Rails.env.development? || Rails.env.test?)
+        return app_root.join('config', 'config.yml')
+      end
+
+      Pathname.new(DEFAULT_CONFIG_PATH)
+    end
+
+    def clients_dir
+      app_root.join('config', 'clients')
+    end
+
+    def app_root
+      if defined?(Rails) && Rails.respond_to?(:root) && Rails.root
+        Rails.root
+      else
+        Pathname.new(File.expand_path('..', __dir__))
+      end
+    end
+
     def load_from_file!
+      path = config_path
       raw = YAML.safe_load_file(
-        CONFIG_PATH,
+        path,
         permitted_classes: [], permitted_symbols: [], aliases: false
       )
       raise ConfigError, '[Whitelabel] Config must be a YAML mapping' unless raw.is_a?(Hash)
@@ -587,11 +644,11 @@ module Whitelabel
       verify_file_signature!(raw)
       @config      = raw
       @api_sourced = false
-      Rails.logger.info("[Whitelabel] Loaded config from file: #{CONFIG_PATH}")
+      Rails.logger.info("[Whitelabel] Loaded config from file: #{path}")
     rescue Psych::SyntaxError => e
-      raise ConfigError, "[Whitelabel] YAML parse error in #{CONFIG_PATH}: #{e.message}"
+      raise ConfigError, "[Whitelabel] YAML parse error in #{path}: #{e.message}"
     rescue Errno::EISDIR
-      raise ConfigError, "[Whitelabel] #{CONFIG_PATH} is a directory, not a file."
+      raise ConfigError, "[Whitelabel] #{path} is a directory, not a file."
     end
 
     def load_from_api!

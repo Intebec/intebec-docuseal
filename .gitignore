@@ -23,6 +23,13 @@
 /config/master.key
 /config/config.yml
 
+# Per-client white-label configs — kept out of git on purpose.
+# Drop one file per client in config/clients/ (e.g. parcours.yml) and switch
+# between them with `bin/use-client`. Templates/docs are committed.
+/config/clients/*
+!/config/clients/README.md
+!/config/clients/.keep
+
 /public/packs
 /public/packs-test
 /node_modules

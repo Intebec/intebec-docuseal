@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+#
+# use-client — switch the active local white-label config (development).
+#
+# Symlinks config/config.yml -> config/clients/<name>.yml so the app (which
+# loads config/config.yml by default in dev) picks up that client's branding.
+# Restart the server after switching — the config is cached at boot.
+#
+# Usage:
+#   bin/use-client <name>      Activate config/clients/<name>.yml
+#   bin/use-client --list      List available client configs (marks the active one)
+#   bin/use-client --current   Print the currently active client
+#   bin/use-client --clear     Remove the config/config.yml symlink
+#   bin/use-client --help      Show this help
+#
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CLIENTS_DIR="$ROOT/config/clients"
+LINK="$ROOT/config/config.yml"
+
+usage() { sed -n '3,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+
+list_clients() {
+  local found=0
+  shopt -s nullglob
+  for f in "$CLIENTS_DIR"/*.yml; do
+    found=1
+    local name marker=""
+    name="$(basename "$f" .yml)"
+    if [[ -L "$LINK" && "$(readlink "$LINK")" == *"$(basename "$f")" ]]; then
+      marker="  <- active"
+    fi
+    printf '  %s%s\n' "$name" "$marker"
+  done
+  shopt -u nullglob
+  if [[ "$found" -eq 0 ]]; then
+    echo "  (none yet — copy config/config.example.yml into config/clients/<name>.yml)"
+  fi
+}
+
+current_client() {
+  if [[ -L "$LINK" ]]; then
+    basename "$(readlink "$LINK")" .yml
+  elif [[ -e "$LINK" ]]; then
+    echo "(config/config.yml is a regular file, not a managed symlink)"
+  else
+    echo "(none)"
+  fi
+}
+
+case "${1:-}" in
+  ""|-h|--help)
+    usage
+    ;;
+  --list|-l)
+    echo "Available client configs in config/clients/:"
+    list_clients
+    ;;
+  --current|-c)
+    echo "Active client: $(current_client)"
+    ;;
+  --clear)
+    if [[ -L "$LINK" ]]; then
+      rm "$LINK"
+      echo "Removed config/config.yml symlink."
+    elif [[ -e "$LINK" ]]; then
+      echo "Refusing to remove config/config.yml — it is a regular file, not a symlink." >&2
+      exit 1
+    else
+      echo "No config/config.yml to clear."
+    fi
+    ;;
+  -*)
+    echo "Unknown option: $1" >&2
+    echo >&2
+    usage >&2
+    exit 1
+    ;;
+  *)
+    NAME="$1"
+    TARGET="$CLIENTS_DIR/$NAME.yml"
+    if [[ ! -f "$TARGET" ]]; then
+      echo "No such client config: config/clients/$NAME.yml" >&2
+      echo >&2
+      echo "Available:" >&2
+      list_clients >&2
+      exit 1
+    fi
+    if [[ -e "$LINK" && ! -L "$LINK" ]]; then
+      echo "config/config.yml exists and is NOT a symlink — refusing to overwrite it." >&2
+      echo "Move or remove it first if you want bin/use-client to manage it." >&2
+      exit 1
+    fi
+    ln -sfn "config/clients/$NAME.yml" "$LINK"
+    echo "Active client -> $NAME  (config/config.yml -> config/clients/$NAME.yml)"
+    echo "Restart the server to apply."
+    ;;
+esac
