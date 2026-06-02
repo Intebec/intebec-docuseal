@@ -20,27 +20,29 @@ cp config/config.example.yml config/clients/parcours.yml
 
 Gitignored files have no history, review, or backup. The cleaner setup is to
 keep all client configs **and** brand images in a separate **private** git repo
-and pull it in as a submodule, then point the app at it with
-`INTEBEC_CLIENTS_DIR`. Suggested private-repo layout:
+and pull it in as a submodule at `config/whitelabel`. **Files must be flat —
+`clients/<name>.yml`, not `clients/<name>/<name>.yml`.** Suggested layout:
 
 ```
-clients/parcours.yml      clients/acme.yml          # the configs
+clients/parcours.yml      clients/acme.yml          # the configs (flat!)
 brands/parcours/...        brands/acme/...           # the per-client images
 ```
 
-One-time wiring (after you create the private repo):
+One-time wiring (after you create + populate the private repo):
 
 ```bash
-git submodule add git@github.com:Intebec/intebec-whitelabel.git config/whitelabel
-export INTEBEC_CLIENTS_DIR=config/whitelabel/clients   # where configs now live
-ln -sfn whitelabel/brands/parcours public/brands/parcours   # serve a client's images
+bin/setup-whitelabel git@github.com:Intebec/intebec-whitelabel.git
 bin/use-client parcours
 ```
 
-On a fresh clone / in CI / on deploy: `git submodule update --init --recursive`.
-`INTEBEC_CLIENTS_DIR` accepts an absolute path or one relative to the repo root,
-and `bin/use-client` honours it too. Leaving it unset keeps the default
-`config/clients`.
+`bin/setup-whitelabel` adds the submodule, initialises it, and symlinks each
+client's brand images into `public/brands/` for dev.
+
+**No env var needed.** Once `config/whitelabel/clients` exists, both the app and
+`bin/use-client` auto-detect it — so a teammate just needs
+`git submodule update --init --recursive` after cloning (or `git clone
+--recurse-submodules`). `INTEBEC_CLIENTS_DIR` is still honoured as an explicit
+override if you ever want a different location.
 
 ## Switching client in development
 
@@ -74,8 +76,9 @@ INTEBEC_CLIENT=acme bin/rails server
 
 1. **`INTEBEC_CONFIG_PATH`** — explicit absolute path. **Production uses this**
    (docker mounts the single client config at `/run/secrets/config.yml`).
-2. **`INTEBEC_CLIENT=<name>`** — loads `<clients-dir>/<name>.yml`, where the
-   clients dir is `INTEBEC_CLIENTS_DIR` (default `config/clients`).
+2. **`INTEBEC_CLIENT=<name>`** — loads `<clients-dir>/<name>.yml`. The clients
+   dir is `INTEBEC_CLIENTS_DIR` if set, else `config/whitelabel/clients` if the
+   submodule is present, else `config/clients`.
 3. **`config/config.yml`** — dev/test default (the symlink `bin/use-client` flips).
 4. **`/run/secrets/config.yml`** — production default.
 

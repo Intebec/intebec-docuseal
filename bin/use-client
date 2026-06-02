@@ -16,13 +16,18 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-# Configs may live in a private submodule/checkout — honour INTEBEC_CLIENTS_DIR
-# (relative paths are resolved against the repo root), default config/clients.
+# Where client configs live (first match wins):
+#   1. INTEBEC_CLIENTS_DIR  (explicit override; relative => repo root)
+#   2. config/whitelabel/clients  (private submodule, auto-detected)
+#   3. config/clients             (in-repo default)
+# Auto-detection means nobody has to export anything once the submodule exists.
 if [[ -n "${INTEBEC_CLIENTS_DIR:-}" ]]; then
   case "$INTEBEC_CLIENTS_DIR" in
     /*) CLIENTS_DIR="$INTEBEC_CLIENTS_DIR" ;;
     *)  CLIENTS_DIR="$ROOT/$INTEBEC_CLIENTS_DIR" ;;
   esac
+elif [[ -d "$ROOT/config/whitelabel/clients" ]]; then
+  CLIENTS_DIR="$ROOT/config/whitelabel/clients"
 else
   CLIENTS_DIR="$ROOT/config/clients"
 fi
