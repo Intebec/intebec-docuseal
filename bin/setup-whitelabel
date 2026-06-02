@@ -43,24 +43,10 @@ if [[ -d "$SUB/brands" ]]; then
   done
 fi
 
-# 3. Point the app at the submodule's clients dir via .env (if one exists).
-ENV_FILE="$ROOT/.env"
-LINE="INTEBEC_CLIENTS_DIR=$SUB/clients"
-if [[ -f "$ENV_FILE" ]]; then
-  if grep -q '^INTEBEC_CLIENTS_DIR=' "$ENV_FILE"; then
-    echo "(.env already sets INTEBEC_CLIENTS_DIR — leaving it.)"
-  else
-    printf '\n%s\n' "$LINE" >> "$ENV_FILE"
-    echo "Added to .env: $LINE"
-  fi
-else
-  echo
-  echo "No .env found. Add this to your environment:"
-  echo "  export $LINE"
-fi
-
+# 3. No env var needed: bin/use-client and the app auto-detect
+#    config/whitelabel/clients when the submodule is present.
 echo
 echo "Done. Available clients:"
-INTEBEC_CLIENTS_DIR="$SUB/clients" bin/use-client --list || true
+bin/use-client --list || true
 echo
-echo "Activate one with:  INTEBEC_CLIENTS_DIR=$SUB/clients bin/use-client <name>"
+echo "Activate one with:  bin/use-client <name>"

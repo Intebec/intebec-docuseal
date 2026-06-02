@@ -633,15 +633,23 @@ module Whitelabel
     end
 
     # Directory holding per-client config files (config/clients/<name>.yml).
-    # Override with INTEBEC_CLIENTS_DIR so the configs can live in a private
-    # git submodule / sibling checkout instead of this repo.  Relative paths
-    # are resolved against the app root.
+    # Resolution (first wins):
+    #   1. INTEBEC_CLIENTS_DIR env var (explicit override; relative => app root)
+    #   2. config/whitelabel/clients  (private submodule, auto-detected)
+    #   3. config/clients             (in-repo default)
+    # Auto-detection means a populated submodule "just works" with no env var,
+    # so colleagues don't each have to export anything.
     def clients_dir
       custom = ENV['INTEBEC_CLIENTS_DIR'].to_s.strip
-      return app_root.join('config', 'clients') if custom.empty?
+      unless custom.empty?
+        path = Pathname.new(custom)
+        return path.absolute? ? path : app_root.join(custom)
+      end
 
-      path = Pathname.new(custom)
-      path.absolute? ? path : app_root.join(custom)
+      submodule = app_root.join('config', 'whitelabel', 'clients')
+      return submodule if submodule.directory?
+
+      app_root.join('config', 'clients')
     end
 
     def app_root
