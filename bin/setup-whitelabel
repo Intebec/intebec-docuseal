@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+#
+# Wire up the private white-label submodule (configs + brand images).
+#
+# Usage:
+#   bin/setup-whitelabel git@github.com:Intebec/intebec-whitelabel.git
+#   bin/setup-whitelabel            # if the submodule is already added
+#
+# It is idempotent — safe to re-run after the private repo changes.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+SUB="config/whitelabel"
+URL="${1:-${INTEBEC_WHITELABEL_URL:-}}"
+
+# 1. Add the submodule (first run) or just initialise it (later runs).
+if [[ ! -e "$SUB/.git" && ! -d "$SUB/clients" ]]; then
+  if [[ -z "$URL" ]]; then
+    echo "Submodule not present and no URL given." >&2
+    echo "Usage: bin/setup-whitelabel <private-repo-url>" >&2
+    exit 1
+  fi
+  echo "Adding submodule: $URL -> $SUB"
+  git submodule add "$URL" "$SUB"
+fi
+git submodule update --init --recursive
+
+if [[ ! -d "$SUB/clients" ]]; then
+  echo "Warning: $SUB/clients not found — is the private repo populated?" >&2
+fi
+
+# 2. Dev symlinks so Rails serves each client's brand images from public/.
+#    (public/brands/* is gitignored, so these links are never committed.)
+if [[ -d "$SUB/brands" ]]; then
+  mkdir -p public/brands
+  for dir in "$SUB"/brands/*/; do
+    [[ -d "$dir" ]] || continue
+    name="$(basename "$dir")"
+    ln -sfn "../../$SUB/brands/$name" "public/brands/$name"
+    echo "linked public/brands/$name -> $SUB/brands/$name"
+  done
+fi
+
+# 3. Point the app at the submodule's clients dir via .env (if one exists).
+ENV_FILE="$ROOT/.env"
+LINE="INTEBEC_CLIENTS_DIR=$SUB/clients"
+if [[ -f "$ENV_FILE" ]]; then
+  if grep -q '^INTEBEC_CLIENTS_DIR=' "$ENV_FILE"; then
+    echo "(.env already sets INTEBEC_CLIENTS_DIR — leaving it.)"
+  else
+    printf '\n%s\n' "$LINE" >> "$ENV_FILE"
+    echo "Added to .env: $LINE"
+  fi
+else
+  echo
+  echo "No .env found. Add this to your environment:"
+  echo "  export $LINE"
+fi
+
+echo
+echo "Done. Available clients:"
+INTEBEC_CLIENTS_DIR="$SUB/clients" bin/use-client --list || true
+echo
+echo "Activate one with:  INTEBEC_CLIENTS_DIR=$SUB/clients bin/use-client <name>"
