@@ -1,0 +1,3 @@
+[submodule "config/whitelabel"]
+	path = config/whitelabel
+	url = git@github.com:Intebec/intebec-whitelabel.git
