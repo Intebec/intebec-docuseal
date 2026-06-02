@@ -370,6 +370,16 @@ module Whitelabel
       false
     end
 
+    def show_embedding?
+      # The embed-code examples reference DocuSeal's own JS SDK packages
+      # (@docuseal/react, @docuseal/vue, @docuseal/angular, <docuseal-form>)
+      # and link to console.docuseal.com, which would expose the upstream
+      # vendor in an Intébec Sign deployment. Hidden by default; flip
+      # `features.show_embedding` on in a client config once the SDK is
+      # republished under Intébec's own brand.
+      dig_bool('features', 'show_embedding')
+    end
+
     # =====================================================================
     # Roles & Permissions (config-driven)
     # =====================================================================
