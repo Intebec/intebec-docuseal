@@ -16,7 +16,16 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CLIENTS_DIR="$ROOT/config/clients"
+# Configs may live in a private submodule/checkout — honour INTEBEC_CLIENTS_DIR
+# (relative paths are resolved against the repo root), default config/clients.
+if [[ -n "${INTEBEC_CLIENTS_DIR:-}" ]]; then
+  case "$INTEBEC_CLIENTS_DIR" in
+    /*) CLIENTS_DIR="$INTEBEC_CLIENTS_DIR" ;;
+    *)  CLIENTS_DIR="$ROOT/$INTEBEC_CLIENTS_DIR" ;;
+  esac
+else
+  CLIENTS_DIR="$ROOT/config/clients"
+fi
 LINK="$ROOT/config/config.yml"
 
 usage() { sed -n '3,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
@@ -54,7 +63,7 @@ case "${1:-}" in
     usage
     ;;
   --list|-l)
-    echo "Available client configs in config/clients/:"
+    echo "Available client configs in ${CLIENTS_DIR#"$ROOT/"}:"
     list_clients
     ;;
   --current|-c)
@@ -81,7 +90,7 @@ case "${1:-}" in
     NAME="$1"
     TARGET="$CLIENTS_DIR/$NAME.yml"
     if [[ ! -f "$TARGET" ]]; then
-      echo "No such client config: config/clients/$NAME.yml" >&2
+      echo "No such client config: $TARGET" >&2
       echo >&2
       echo "Available:" >&2
       list_clients >&2
@@ -92,8 +101,9 @@ case "${1:-}" in
       echo "Move or remove it first if you want bin/use-client to manage it." >&2
       exit 1
     fi
-    ln -sfn "config/clients/$NAME.yml" "$LINK"
-    echo "Active client -> $NAME  (config/config.yml -> config/clients/$NAME.yml)"
+    # Absolute target so it resolves regardless of where CLIENTS_DIR points.
+    ln -sfn "$TARGET" "$LINK"
+    echo "Active client -> $NAME  (config/config.yml -> $TARGET)"
     echo "Restart the server to apply."
     ;;
 esac

@@ -42,6 +42,7 @@ require 'json'
 require 'openssl'
 require 'net/http'
 require 'securerandom'
+require_relative 'whitelabel/config_validator'
 
 module Whitelabel
   class ConfigError < StandardError; end
@@ -560,6 +561,16 @@ module Whitelabel
     # rubocop:enable Metrics/MethodLength, Naming/VariableNumber
 
     # =====================================================================
+    # Validation
+    # =====================================================================
+
+    # Validate a config hash. Returns { errors: [...], warnings: [...] }.
+    # See Whitelabel::ConfigValidator for the rules.
+    def validate(raw = config)
+      ConfigValidator.validate(raw)
+    end
+
+    # =====================================================================
     # Config signature (file-based only)
     # =====================================================================
 
@@ -621,8 +632,16 @@ module Whitelabel
       Pathname.new(DEFAULT_CONFIG_PATH)
     end
 
+    # Directory holding per-client config files (config/clients/<name>.yml).
+    # Override with INTEBEC_CLIENTS_DIR so the configs can live in a private
+    # git submodule / sibling checkout instead of this repo.  Relative paths
+    # are resolved against the app root.
     def clients_dir
-      app_root.join('config', 'clients')
+      custom = ENV['INTEBEC_CLIENTS_DIR'].to_s.strip
+      return app_root.join('config', 'clients') if custom.empty?
+
+      path = Pathname.new(custom)
+      path.absolute? ? path : app_root.join(custom)
     end
 
     def app_root
@@ -642,6 +661,7 @@ module Whitelabel
       raise ConfigError, '[Whitelabel] Config must be a YAML mapping' unless raw.is_a?(Hash)
 
       verify_file_signature!(raw)
+      validate_loaded!(raw, path)
       @config      = raw
       @api_sourced = false
       Rails.logger.info("[Whitelabel] Loaded config from file: #{path}")
@@ -744,6 +764,27 @@ module Whitelabel
         raw = [ENV.fetch('INTEBEC_LICENCE_KEY', ''), ENV.fetch('HOST', 'localhost')].join(':')
         OpenSSL::Digest::SHA256.hexdigest(raw)
       end
+    end
+
+    # =====================================================================
+    # Validation (file-based loads)
+    # =====================================================================
+    #
+    # Logs warnings/errors found in a freshly-loaded config so typos surface in
+    # the boot log instead of as broken pages.  Set INTEBEC_STRICT_CONFIG=true
+    # to refuse to boot on validation errors (recommended for CI / deploys).
+    def validate_loaded!(raw, path)
+      result = ConfigValidator.validate(raw)
+
+      result[:warnings].each { |w| Rails.logger.warn("[Whitelabel] config warning (#{path}): #{w}") }
+      result[:errors].each   { |e| Rails.logger.error("[Whitelabel] config error (#{path}): #{e}") }
+
+      return if result[:errors].empty?
+      return unless ENV['INTEBEC_STRICT_CONFIG'].to_s.strip.casecmp('true').zero?
+
+      raise ConfigError,
+            "[Whitelabel] #{result[:errors].size} config error(s) in #{path} " \
+            "(INTEBEC_STRICT_CONFIG=true): #{result[:errors].join('; ')}"
     end
 
     # =====================================================================
