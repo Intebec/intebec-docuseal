@@ -22,6 +22,7 @@
 
 /config/master.key
 /config/config.yml
+/config/.active-client
 
 # Per-client white-label configs — kept out of git on purpose.
 # Drop one file per client in config/clients/ (e.g. parcours.yml) and switch
