@@ -362,7 +362,12 @@ module Whitelabel
     end
 
     def show_pro_upsells?
-      dig_bool('features', 'show_pro_upsells')
+      # White-label garde-fou: every built-in "Pro" upsell links to DocuSeal's
+      # own console/cloud and is labelled "DocuSeal Pro", so it must never
+      # surface in an Intébec Sign deployment — regardless of what a client
+      # config sets. Force it off here until Intébec-branded upsells replace
+      # them; then restore `dig_bool('features', 'show_pro_upsells')`.
+      false
     end
 
     # =====================================================================
