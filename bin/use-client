@@ -9,8 +9,9 @@
 # config/.active-client so switching works the same on every platform.
 # Restart the server after switching — the config is cached at boot.
 #
-# NOTE: this only affects `bin/rails server` in dev. In Docker the active
-# client is set by INTEBEC_CONFIG_FILE in .env, not by this script.
+# NOTE: this affects `bin/rails server` in dev (via config/config.yml) AND,
+# when a .env is present, updates INTEBEC_CONFIG_FILE / INTEBEC_BRAND_DIR so
+# Docker switches to the same client — then just `docker compose up -d`.
 #
 # Usage:
 #   bin/use-client <name>      Activate <clients-dir>/<name>.yml
@@ -61,6 +62,41 @@ list_clients() {
   if [[ "$found" -eq 0 ]]; then
     echo "  (none yet — add <name>.yml to ${CLIENTS_DIR#"$ROOT/"})"
   fi
+}
+
+# Path as written into .env: "./relative" if under the repo, else absolute.
+repo_rel() {
+  if [[ "$1" == "$ROOT/"* ]]; then echo "./${1#"$ROOT/"}"; else echo "$1"; fi
+}
+
+# Set or replace KEY=VALUE in an env file (no external sed delimiter issues).
+set_env_var() {
+  local file="$1" key="$2" val="$3" tmp
+  if grep -qE "^${key}=" "$file"; then
+    tmp="$(mktemp)"
+    awk -v k="$key" -v v="$val" 'BEGIN{FS=OFS="="} $1==k{print k"="v; next} {print}' "$file" >"$tmp"
+    mv "$tmp" "$file"
+  else
+    printf '%s=%s\n' "$key" "$val" >>"$file"
+  fi
+}
+
+# Mirror the active client into .env (for Docker) when a .env exists.
+sync_env() {
+  local target="$1" env_file="$ROOT/.env" brands_dir config_val brand_val
+  [[ -f "$env_file" ]] || return 0
+
+  config_val="$(repo_rel "$target")"
+  set_env_var "$env_file" INTEBEC_CONFIG_FILE "$config_val"
+  echo "Updated .env: INTEBEC_CONFIG_FILE=$config_val"
+
+  brands_dir="$(dirname "$CLIENTS_DIR")/brands"
+  if [[ -d "$brands_dir" ]]; then
+    brand_val="$(repo_rel "$brands_dir")"
+    set_env_var "$env_file" INTEBEC_BRAND_DIR "$brand_val"
+    echo "Updated .env: INTEBEC_BRAND_DIR=$brand_val"
+  fi
+  echo "Run 'docker compose up -d' to apply in Docker."
 }
 
 current_client() {
@@ -137,6 +173,7 @@ case "${1:-}" in
     if [[ "$method" == "copy" ]]; then
       echo "(symlinks unavailable here — copied instead; re-run after editing the config.)"
     fi
-    echo "Restart the server to apply."
+    sync_env "$TARGET"
+    echo "Restart the server to apply (local dev)."
     ;;
 esac
