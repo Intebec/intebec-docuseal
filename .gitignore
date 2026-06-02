@@ -30,6 +30,12 @@
 !/config/clients/README.md
 !/config/clients/.keep
 
+# Per-client brand images — also kept private (mounted in prod, local in dev).
+# Drop one folder per client in public/brands/<client>/ (logo, favicons, …).
+/public/brands/*
+!/public/brands/README.md
+!/public/brands/.keep
+
 /public/packs
 /public/packs-test
 /node_modules
