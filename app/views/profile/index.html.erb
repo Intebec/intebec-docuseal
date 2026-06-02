@@ -105,6 +105,13 @@
         <% end %>
       </div>
     <% end %>
+    <p class="text-2xl font-bold mt-8 mb-4">
+      <%= t('product_tour') %>
+    </p>
+    <p class="mb-4 text-sm text-base-content/70">
+      <%= t('start_a_quick_tour_to_learn_how_to_create_and_send_your_first_document') %>
+    </p>
+    <%= link_to t('start_tour'), root_path(tour: 'true'), class: 'base-button w-full' %>
   </div>
   <div class="w-0 md:w-52"></div>
 </div>

@@ -777,6 +777,7 @@ en: &en
   welcome_to_docuseal: Welcome to DocuSeal
   start_a_quick_tour_to_learn_how_to_create_and_send_your_first_document: Start a quick tour to learn how to create and send your first document
   start_tour: Start Tour
+  product_tour: Product Tour
   name_a_z: Name A-Z
   recently_used: Recently used
   newest_first: Newest first
@@ -1830,6 +1831,7 @@ es: &es
   welcome_to_docuseal: Bienvenido a DocuSeal
   start_a_quick_tour_to_learn_how_to_create_and_send_your_first_document: Inicia una guía rápida para aprender a crear y enviar tu primer documento.
   start_tour: Iniciar guía
+  product_tour: Guía del producto
   name_a_z: Nombre A-Z
   recently_used: Usado recientemente
   newest_first: Más reciente primero
@@ -2883,6 +2885,7 @@ it: &it
   welcome_to_docuseal: Benvenuto in DocuSeal
   start_a_quick_tour_to_learn_how_to_create_and_send_your_first_document: Inizia un tour rapido per imparare a creare e inviare il tuo primo documento.
   start_tour: Inizia il tour
+  product_tour: Tour del prodotto
   name_a_z: Nome A-Z
   recently_used: Recentemente usato
   newest_first: Più recenti prima
@@ -3936,6 +3939,7 @@ fr: &fr
   welcome_to_docuseal: Bienvenue sur DocuSeal
   start_a_quick_tour_to_learn_how_to_create_and_send_your_first_document: Lancez une visite rapide pour apprendre à créer et envoyer votre premier document
   start_tour: Démarrer la visite
+  product_tour: Visite guidée
   name_a_z: Nom A‑Z
   recently_used: Récemment utilisés
   newest_first: Plus récents en premier
@@ -4986,6 +4990,7 @@ pt: &pt
   welcome_to_docuseal: Bem-vindo ao DocuSeal
   start_a_quick_tour_to_learn_how_to_create_and_send_your_first_document: Comece um tour rápido para aprender a criar e enviar seu primeiro documento.
   start_tour: Iniciar tour
+  product_tour: Tour do produto
   name_a_z: Nome A-Z
   recently_used: Recentemente usado
   newest_first: Mais recente primeiro
@@ -6039,6 +6044,7 @@ de: &de
   welcome_to_docuseal: Willkommen bei DocuSeal
   start_a_quick_tour_to_learn_how_to_create_and_send_your_first_document: Starten Sie eine kurze Tour, um zu lernen, wie Sie Ihr erstes Dokument erstellen und versenden.
   start_tour: Starten
+  product_tour: Produkttour
   name_a_z: Name A-Z
   recently_used: Kürzlich verwendet
   newest_first: Neueste zuerst
@@ -7497,6 +7503,7 @@ nl: &nl
   welcome_to_docuseal: Welkom bij DocuSeal
   start_a_quick_tour_to_learn_how_to_create_and_send_your_first_document: Start een korte rondleiding om te leren hoe u uw eerste document maakt en verzendt
   start_tour: Rondleiding starten
+  product_tour: Productrondleiding
   name_a_z: Naam A-Z
   recently_used: Onlangs gebruikt
   newest_first: Nieuwste eerst
