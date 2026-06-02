@@ -2,15 +2,21 @@
 #
 # use-client — switch the active local white-label config (development).
 #
-# Symlinks config/config.yml -> config/clients/<name>.yml so the app (which
+# Points config/config.yml at config/<clients>/<name>.yml so the app (which
 # loads config/config.yml by default in dev) picks up that client's branding.
+# Uses a symlink where the OS supports it, and falls back to a copy otherwise
+# (e.g. Git Bash / MSYS on Windows). The active client is tracked in
+# config/.active-client so switching works the same on every platform.
 # Restart the server after switching — the config is cached at boot.
 #
+# NOTE: this only affects `bin/rails server` in dev. In Docker the active
+# client is set by INTEBEC_CONFIG_FILE in .env, not by this script.
+#
 # Usage:
-#   bin/use-client <name>      Activate config/clients/<name>.yml
+#   bin/use-client <name>      Activate <clients-dir>/<name>.yml
 #   bin/use-client --list      List available client configs (marks the active one)
 #   bin/use-client --current   Print the currently active client
-#   bin/use-client --clear     Remove the config/config.yml symlink
+#   bin/use-client --clear     Remove the managed config/config.yml
 #   bin/use-client --help      Show this help
 #
 set -euo pipefail
@@ -20,7 +26,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #   1. INTEBEC_CLIENTS_DIR  (explicit override; relative => repo root)
 #   2. config/whitelabel/clients  (private submodule, auto-detected)
 #   3. config/clients             (in-repo default)
-# Auto-detection means nobody has to export anything once the submodule exists.
 if [[ -n "${INTEBEC_CLIENTS_DIR:-}" ]]; then
   case "$INTEBEC_CLIENTS_DIR" in
     /*) CLIENTS_DIR="$INTEBEC_CLIENTS_DIR" ;;
@@ -32,32 +37,41 @@ else
   CLIENTS_DIR="$ROOT/config/clients"
 fi
 LINK="$ROOT/config/config.yml"
+MARKER="$ROOT/config/.active-client"
 
-usage() { sed -n '3,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '3,27p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+
+active_name() { [[ -f "$MARKER" ]] && cat "$MARKER" || true; }
+
+# True if config/config.yml is managed by us (a symlink, or a copy we recorded).
+managed() { [[ -L "$LINK" || ( -e "$LINK" && -f "$MARKER" ) ]]; }
 
 list_clients() {
-  local found=0
+  local found=0 active
+  active="$(active_name)"
   shopt -s nullglob
   for f in "$CLIENTS_DIR"/*.yml; do
     found=1
-    local name marker=""
+    local name="" marker=""
     name="$(basename "$f" .yml)"
-    if [[ -L "$LINK" && "$(readlink "$LINK")" == *"$(basename "$f")" ]]; then
-      marker="  <- active"
-    fi
+    [[ -n "$active" && "$name" == "$active" ]] && marker="  <- active"
     printf '  %s%s\n' "$name" "$marker"
   done
   shopt -u nullglob
   if [[ "$found" -eq 0 ]]; then
-    echo "  (none yet — copy config/config.example.yml into config/clients/<name>.yml)"
+    echo "  (none yet — add <name>.yml to ${CLIENTS_DIR#"$ROOT/"})"
   fi
 }
 
 current_client() {
-  if [[ -L "$LINK" ]]; then
+  local active
+  active="$(active_name)"
+  if [[ -n "$active" ]]; then
+    echo "$active"
+  elif [[ -L "$LINK" ]]; then
     basename "$(readlink "$LINK")" .yml
   elif [[ -e "$LINK" ]]; then
-    echo "(config/config.yml is a regular file, not a managed symlink)"
+    echo "(config/config.yml is an unmanaged file)"
   else
     echo "(none)"
   fi
@@ -75,13 +89,14 @@ case "${1:-}" in
     echo "Active client: $(current_client)"
     ;;
   --clear)
-    if [[ -L "$LINK" ]]; then
-      rm "$LINK"
-      echo "Removed config/config.yml symlink."
+    if managed; then
+      rm -f "$LINK" "$MARKER"
+      echo "Cleared active client (removed config/config.yml)."
     elif [[ -e "$LINK" ]]; then
-      echo "Refusing to remove config/config.yml — it is a regular file, not a symlink." >&2
+      echo "Refusing to remove config/config.yml — it is not managed by use-client." >&2
       exit 1
     else
+      rm -f "$MARKER"
       echo "No config/config.yml to clear."
     fi
     ;;
@@ -101,14 +116,27 @@ case "${1:-}" in
       list_clients >&2
       exit 1
     fi
-    if [[ -e "$LINK" && ! -L "$LINK" ]]; then
-      echo "config/config.yml exists and is NOT a symlink — refusing to overwrite it." >&2
-      echo "Move or remove it first if you want bin/use-client to manage it." >&2
+    # Only refuse if config/config.yml is someone's own file (unmanaged).
+    if [[ -e "$LINK" ]] && ! managed; then
+      echo "config/config.yml exists and isn't managed by use-client — refusing to overwrite." >&2
+      echo "Move/remove it (or run: bin/use-client --clear) first." >&2
       exit 1
     fi
-    # Absolute target so it resolves regardless of where CLIENTS_DIR points.
-    ln -sfn "$TARGET" "$LINK"
-    echo "Active client -> $NAME  (config/config.yml -> $TARGET)"
+
+    rm -f "$LINK"
+    if ln -s "$TARGET" "$LINK" 2>/dev/null && [[ -L "$LINK" ]]; then
+      method="symlink"
+    else
+      rm -f "$LINK"
+      cp "$TARGET" "$LINK"
+      method="copy"
+    fi
+    printf '%s\n' "$NAME" > "$MARKER"
+
+    echo "Active client -> $NAME  ($method: config/config.yml <- $TARGET)"
+    if [[ "$method" == "copy" ]]; then
+      echo "(symlinks unavailable here — copied instead; re-run after editing the config.)"
+    fi
     echo "Restart the server to apply."
     ;;
 esac
