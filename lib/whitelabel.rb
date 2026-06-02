@@ -362,7 +362,22 @@ module Whitelabel
     end
 
     def show_pro_upsells?
-      dig_bool('features', 'show_pro_upsells')
+      # White-label garde-fou: every built-in "Pro" upsell links to DocuSeal's
+      # own console/cloud and is labelled "DocuSeal Pro", so it must never
+      # surface in an Intébec Sign deployment — regardless of what a client
+      # config sets. Force it off here until Intébec-branded upsells replace
+      # them; then restore `dig_bool('features', 'show_pro_upsells')`.
+      false
+    end
+
+    def show_embedding?
+      # The embed-code examples reference DocuSeal's own JS SDK packages
+      # (@docuseal/react, @docuseal/vue, @docuseal/angular, <docuseal-form>)
+      # and link to console.docuseal.com, which would expose the upstream
+      # vendor in an Intébec Sign deployment. Hidden by default; flip
+      # `features.show_embedding` on in a client config once the SDK is
+      # republished under Intébec's own brand.
+      dig_bool('features', 'show_embedding')
     end
 
     # =====================================================================
