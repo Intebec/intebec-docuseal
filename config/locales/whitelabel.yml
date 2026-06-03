@@ -23,6 +23,7 @@ en: &en_wl
   send_signature_request_emails_without_limits_with_docuseal_pro: "Send signature request emails without limits with Intébec Pro"
   unlock_more_user_roles_with_docuseal_pro: "Unlock more user roles with Intébec Pro."
   docuseal_support: "Intébec Support"
+  connect_to_docuseal_mcp: "Connect to Intébec MCP"
   click_here_to_learn_more_about_user_roles_and_permissions_html: '<a href="https://intebec.ca/resources/manage-users-and-roles" class="link" rel="noopener noreferrer nofollow" target="_blank">Click here</a> to learn more about user roles and permissions.'
   on_a_scale_of_1_to_10_how_satisfied_are_you_with_the_docuseal_product_: "On a scale of 1 to 10, how satisfied are you with the Intébec product?"
   your_pro_plan_has_been_suspended_due_to_unpaid_invoices_you_can_update_your_payment_details_to_settle_the_invoice_and_continue_using_docuseal_or_cancel_your_subscription: "Your Pro Plan has been suspended due to unpaid invoices. You can update your payment details to settle the invoice and continue using Intébec or cancel your subscription."
@@ -55,6 +56,7 @@ fr: &fr_wl
   send_signature_request_emails_without_limits_with_docuseal_pro: "Envoyez des courriels de demande de signature sans limites avec Intébec Pro"
   unlock_more_user_roles_with_docuseal_pro: "Débloquez plus de rôles utilisateurs avec Intébec Pro."
   docuseal_support: "Soutien Intébec"
+  connect_to_docuseal_mcp: "Se connecter à Intébec MCP"
   click_here_to_learn_more_about_user_roles_and_permissions_html: '<a href="https://intebec.ca/resources/manage-users-and-roles" class="link" rel="noopener noreferrer nofollow" target="_blank">Cliquez ici</a> pour en savoir plus sur les rôles et les permissions des utilisateurs.'
   on_a_scale_of_1_to_10_how_satisfied_are_you_with_the_docuseal_product_: "Sur une échelle de 1 à 10, à quel point êtes-vous satisfait du produit Intébec?"
   your_pro_plan_has_been_suspended_due_to_unpaid_invoices_you_can_update_your_payment_details_to_settle_the_invoice_and_continue_using_docuseal_or_cancel_your_subscription: "Votre plan Pro a été suspendu en raison de factures impayées. Vous pouvez mettre à jour vos informations de paiement pour régler la facture et continuer à utiliser Intébec ou annuler votre abonnement."
