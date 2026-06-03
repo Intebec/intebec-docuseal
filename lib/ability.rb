@@ -47,8 +47,6 @@ class Ability
     can :read,   Account, id: user.account_id
     can :manage, AccessToken, user_id: user.id
     can :manage, McpToken, user_id: user.id
-
-    can :manage, :mcp
   end
 
   def apply_role_permissions(user)
@@ -61,6 +59,9 @@ class Ability
         grant_if_allowed(user, model, cancan_action, condition_proc, config_actions)
       end
     end
+
+    # MCP server settings are admin-only (first role in the config).
+    can :manage, :mcp if Whitelabel.admin_role?(role)
   end
 
   def grant_if_allowed(user, model, cancan_action, condition_proc, config_actions)
