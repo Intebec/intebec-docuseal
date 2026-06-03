@@ -484,7 +484,7 @@ module Whitelabel
     end
 
     # All known settings sections in display order.
-    ALL_SETTINGS_SECTIONS = %w[account email storage notifications esign personalization users api webhooks].freeze
+    ALL_SETTINGS_SECTIONS = %w[account email storage notifications esign personalization users api webhooks mcp].freeze
 
     # Returns true if the role is allowed to see the given settings section.
     # Falls back to ALL_SETTINGS_SECTIONS for roles that have settings read

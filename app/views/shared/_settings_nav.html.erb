@@ -55,6 +55,13 @@
           </li>
         <% end %>
       <% end %>
+      <% unless Docuseal.multitenant? %>
+        <% if can?(:manage, :mcp) %>
+          <li>
+            <%= link_to 'MCP', settings_mcp_index_path, class: 'text-base hover:bg-base-300' %>
+          </li>
+        <% end %>
+      <% end %>
       <% if Docuseal.demo? || !Docuseal.multitenant? || (current_user != true_user && !current_account.testing?) %>
         <% if Whitelabel.setting_section_visible?(current_user.role, 'webhooks') && can?(:read, WebhookUrl) %>
           <li>
