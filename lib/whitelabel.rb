@@ -284,6 +284,18 @@ module Whitelabel
       config.dig('assets', 'preview_image') || '/preview.png'
     end
 
+    # Optional per-client stylesheet, loaded after the base theme so it can
+    # override anything. An explicit assets.custom_css path wins; otherwise
+    # custom.css is picked up automatically when it exists in the client's
+    # brand directory (next to the logo). Returns nil when there is none.
+    def custom_css_path
+      explicit = config.dig('assets', 'custom_css')
+      return explicit if explicit
+
+      candidate = "#{File.dirname(logo_path)}/custom.css"
+      candidate if public_file?(candidate)
+    end
+
     # =====================================================================
     # Theme — HSL triplets for DaisyUI / CSS custom properties
     # =====================================================================
@@ -858,6 +870,14 @@ module Whitelabel
     def dig_bool(section, key, default: false)
       value = config.dig(section, key)
       value.nil? ? default : value
+    end
+
+    # True if a URL path like "/brands/x/custom.css" exists under public/.
+    # Used to auto-detect optional brand assets.
+    def public_file?(url_path)
+      return false unless defined?(Rails) && Rails.respond_to?(:public_path)
+
+      Rails.public_path.join(url_path.to_s.delete_prefix('/')).file?
     end
   end
 end

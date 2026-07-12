@@ -4,3 +4,6 @@
 <%= render 'shared/meta' %>
 <link rel="stylesheet" href="/intebec.css">
   <style id="whitelabel-theme-vars"><%= wl.inline_css_variables %></style>
+<% if (custom_css = wl.custom_css_path) %>
+  <link rel="stylesheet" href="<%= custom_css %>">
+<% end %>
