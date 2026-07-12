@@ -7,7 +7,7 @@
         <div class="font-medium items-start w-full group-hover:link text-sm flex space-x-1">
           <%= svg_icon('file_text', class: 'w-4 h-4 mt-0.5 flex-shrink-0') %>
           <span style="overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;">
-            <% (submission.name || template.name).split(/(_)/).each do |item| %><%= item %><wbr><% end %>
+            <% (submission.name || template&.name).to_s.split(/(_)/).each do |item| %><%= item %><wbr><% end %>
             <%= svg_icon('arrow_right', class: 'w-4 h-4 sm:inline group-hover:visible invisible hidden') %>
           </span>
         </div>
@@ -28,7 +28,7 @@
   <% end %>
   <div class="w-full flex flex-col md:flex-row space-y-4 md:space-y-0 md:justify-between px-5 md:px-6 pb-5 md:items-center pt-5 relative cursor-pointer">
     <% submitters = (submission.template_submitters || submission.template.submitters).filter_map { |item| submission.submitters.find { |e| e.uuid == item['uuid'] } } %>
-    <% is_submission_completed = submitters.all?(&:completed_at?) && submitters.size.positive? %>
+    <% is_submission_completed = submission.completed_at? %>
     <% if submitters.size == 1 %>
       <div>
         <% submitter = submitters.first %>
@@ -51,7 +51,7 @@
               <a href="<%= submission_path(submission) %>" class="text-lg break-all peer">
                 <%= submitter.name || submitter.email || submitter.phone %>
               </a>
-              <% if can?(:update, submission) && !submitter.start_form_submission_events.any? && !submission.archived_at? && !submission.expired? && !submitter.declined_at? %>
+              <% if !submitter.completed_at? && can?(:update, submission) && !submitter.start_form_submission_events.any? && !submission.archived_at? && !submission.expired? && !submitter.declined_at? %>
                 <span class="pl-0.5 tooltip tooltip-top md:opacity-0 md:hover:opacity-100 md:peer-hover:opacity-100" data-tip="<%= t('edit') %>">
                   <%= link_to edit_submitter_path(submitter), class: 'shrink-0', data: { turbo_frame: 'modal' } do %>
                     <%= svg_icon('pencil', class: 'w-5 h-5') %>
@@ -144,7 +144,7 @@
                     <a href="<%= submission_path(submission) %>" class="text-lg break-all peer">
                       <%= submitter.name || submitter.email || submitter.phone %>
                     </a>
-                    <% if can?(:update, submission) && !submitter.start_form_submission_events.any? && !submission.archived_at? && !submission.expired? && !submitter.declined_at? %>
+                    <% if !submitter.completed_at? && can?(:update, submission) && !submitter.start_form_submission_events.any? && !submission.archived_at? && !submission.expired? && !submitter.declined_at? %>
                       <span class="pl-0.5 tooltip tooltip-top md:opacity-0 md:hover:opacity-100 md:peer-hover:opacity-100" data-tip="<%= t('edit') %>">
                         <%= link_to edit_submitter_path(submitter), class: 'shrink-0', data: { turbo_frame: 'modal' } do %>
                           <%= svg_icon('pencil', class: 'w-5 h-5') %>

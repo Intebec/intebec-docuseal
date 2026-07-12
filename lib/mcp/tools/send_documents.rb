@@ -69,11 +69,17 @@ module Mcp
 
       module_function
 
-      # rubocop:disable Metrics/MethodLength
+      # rubocop:disable Metrics
       def call(arguments, current_user, current_ability)
         template = Template.accessible_by(current_ability).find_by(id: arguments['template_id'])
 
-        return { content: [{ type: 'text', text: 'Template not found' }], isError: true } unless template
+        if !template || !current_ability.can?(:read, template)
+          return { content: [{ type: 'text', text: 'Template not found' }], isError: true }
+        end
+
+        if template.archived_at?
+          return { content: [{ type: 'text', text: 'Template has been archived' }], isError: true }
+        end
 
         current_ability.authorize!(:create, Submission.new(template:, account_id: current_user.account_id))
 
@@ -97,8 +103,8 @@ module Mcp
           template:,
           user: current_user,
           source: :mcp,
-          submitters_order: 'random',
-          submissions_attrs: { submitters: submitters },
+          submitters_order: template.preferences['submitters_order'].presence || 'random',
+          submissions_attrs: { submitters: },
           params: { 'send_email' => true, 'submitters' => submitters }
         )
 
@@ -109,15 +115,6 @@ module Mcp
         WebhookUrls.enqueue_events(submissions, 'submission.created')
 
         Submissions.send_signature_requests(submissions)
-
-        submissions.each do |submission|
-          submission.submitters.each do |submitter|
-            next unless submitter.completed_at?
-
-            ProcessSubmitterCompletionJob.perform_async('submitter_id' => submitter.id,
-                                                        'send_invitation_email' => false)
-          end
-        end
 
         SearchEntries.enqueue_reindex(submissions)
 
@@ -137,7 +134,7 @@ module Mcp
       rescue Submissions::CreateFromSubmitters::BaseError => e
         { content: [{ type: 'text', text: e.message }], isError: true }
       end
-      # rubocop:enable Metrics/MethodLength
+      # rubocop:enable Metrics
     end
   end
 end
