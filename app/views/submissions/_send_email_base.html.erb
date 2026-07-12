@@ -2,15 +2,14 @@
 <% template_submitters = local_assigns[:submitter]&.submission&.template_submitters || template.submitters %>
 <% message_field_id = "message_field_#{SecureRandom.hex(3)}" %>
 <div class="form-control">
-  <% can_send_emails = Accounts.can_send_emails?(current_account) %>
   <div class="flex justify-between items-center">
     <%= f.label :send_email, for: uuid = SecureRandom.uuid, class: 'flex items-center cursor-pointer' do %>
       <%= f.check_box :send_email, id: uuid, class: 'base-checkbox', disabled: !can_send_emails || local_assigns[:disable_email], checked: can_send_emails && !local_assigns.key?(:resend_email) && !local_assigns[:disable_email] && template&.preferences&.dig('request_email_enabled') != false %>
       <span class="label"><%= local_assigns[:resend_email] ? t('re_send_email') : t('send_email') %></span>
     <% end %>
     <div>
+      <%= render 'submissions/email_stats' %>
       <% if can_send_emails %>
-        <%= render 'submissions/email_stats' %>
         <%= content_for(:edit_button) || capture do %>
           <toggle-visible data-element-ids="<%= [message_field_id].to_json %>" class="flex">
             <label>
@@ -57,7 +56,7 @@
       <div class="form-control">
         <%= f.label :message, t('body'), class: 'label' %>
         <% body_variables = AccountConfig::EMAIL_VARIABLES[AccountConfig::SUBMITTER_INVITATION_EMAIL_KEY] %>
-        <%= render 'personalization_settings/markdown_editor', name: f.field_name(:body), value: local_assigns[:submitter_email_message]&.body.presence || submitter_preferences_index.dig(local_assigns[:submitter]&.uuid, 'request_email_body').presence || template&.preferences&.dig('request_email_body').presence || config.value['body'], variables: body_variables %>
+        <%= render 'personalization_settings/markdown_editor', name: f.field_name(:body), value: local_assigns[:submitter_email_message]&.normalized_body.presence || submitter_preferences_index.dig(local_assigns[:submitter]&.uuid, 'request_email_body').presence || template&.preferences&.dig('request_email_body').presence || config.value['body'], variables: body_variables %>
         <% unless local_assigns.fetch(:disable_save_as_default_template_option, false) %>
           <label for="<%= uuid = SecureRandom.uuid %>" class="flex items-center cursor-pointer">
             <%= check_box_tag :save_message, id: uuid, class: 'base-checkbox', checked: false %>
@@ -92,7 +91,7 @@
               </div>
               <div class="form-control">
                 <%= ff.label :message, t('body'), class: 'label' %>
-                <%= render 'personalization_settings/markdown_editor', name: ff.field_name(:body), value: local_assigns[:submitter_email_message]&.body.presence || submitter_preferences_index.dig(submitter['uuid'], 'request_email_body').presence || template&.preferences&.dig('request_email_body').presence || config.value['body'], variables: body_variables %>
+                <%= render 'personalization_settings/markdown_editor', name: ff.field_name(:body), value: local_assigns[:submitter_email_message]&.normalized_body.presence || submitter_preferences_index.dig(submitter['uuid'], 'request_email_body').presence || template&.preferences&.dig('request_email_body').presence || config.value['body'], variables: body_variables %>
               </div>
             </div>
           <% end %>
