@@ -17,20 +17,23 @@
 #   1. INTEBEC_CONFIG_PATH        — explicit absolute path.  PRODUCTION uses
 #                                   this (docker mounts the client config at
 #                                   /run/secrets/config.yml).
-#   2. INTEBEC_CLIENT=<name>      — loads config/clients/<name>.yml.  Lets you
-#                                   keep one file per client and switch between
-#                                   them in development without editing paths.
-#   3. dev / test default         — config/config.yml  (a gitignored file, or a
-#                                   symlink managed by `bin/use-client`).
+#   2. INTEBEC_CLIENT=<name>      — loads <clients-dir>/<name>.yml (see
+#                                   INTEBEC_CLIENTS_DIR below).
+#   3. dev / test default         — config/config.yml  (a gitignored file
+#                                   managed by the private intebec-whitelabel
+#                                   repo's `bin/use-client`).
 #   4. otherwise                  — /run/secrets/config.yml  (prod default).
 #
-# Per-client configs live in config/clients/*.yml and are gitignored so client
-# branding never lands in version control.  See config/config.example.yml for a
-# fully documented template and config/clients/README.md for the workflow.
+# This repo ships NO branding. Per-client configs and brand images live in the
+# private intebec-whitelabel repo (checked out side by side); its
+# `bin/use-client` hands them to this app via config/config.yml, .env and
+# public/brands/<client>. See config/config.example.yml for a documented
+# config template.
 #
 # Env vars:
 #   INTEBEC_CONFIG_PATH   — explicit local file path  (highest priority)
-#   INTEBEC_CLIENT        — name of a config/clients/<name>.yml file  (dev)
+#   INTEBEC_CLIENT        — name of a <clients-dir>/<name>.yml file  (dev)
+#   INTEBEC_CLIENTS_DIR   — where client configs live (default: config/clients)
 #   INTEBEC_LICENCE_KEY   — licence UUID  (required for API mode)
 #   INTEBEC_SECRET_KEY    — HMAC shared secret  (required for API mode)
 #   INTEBEC_DASHBOARD_URL — override Dashboard URL  (default: https://dashboard.intebec.ca)
@@ -630,8 +633,9 @@ module Whitelabel
 
     # Resolve which local YAML file to load.  First match wins:
     #   1. INTEBEC_CONFIG_PATH  (explicit path — production / docker)
-    #   2. INTEBEC_CLIENT       (config/clients/<name>.yml — dev switching)
-    #   3. config/config.yml    (dev / test default — symlink or local file)
+    #   2. INTEBEC_CLIENT       (<clients-dir>/<name>.yml — dev switching)
+    #   3. config/config.yml    (dev / test default — managed by the
+    #                            intebec-whitelabel repo's bin/use-client)
     #   4. /run/secrets/config.yml (prod default)
     def resolve_config_path
       explicit = ENV['INTEBEC_CONFIG_PATH'].to_s.strip
@@ -647,22 +651,18 @@ module Whitelabel
       Pathname.new(DEFAULT_CONFIG_PATH)
     end
 
-    # Directory holding per-client config files (config/clients/<name>.yml).
+    # Directory holding per-client config files (<clients-dir>/<name>.yml).
     # Resolution (first wins):
     #   1. INTEBEC_CLIENTS_DIR env var (explicit override; relative => app root)
-    #   2. config/whitelabel/clients  (private submodule, auto-detected)
-    #   3. config/clients             (in-repo default)
-    # Auto-detection means a populated submodule "just works" with no env var,
-    # so colleagues don't each have to export anything.
+    #      — the intebec-whitelabel repo's bin/use-client exports this, pointing
+    #      at its own clients/ directory.
+    #   2. config/clients (in-repo default, gitignored)
     def clients_dir
       custom = ENV['INTEBEC_CLIENTS_DIR'].to_s.strip
       unless custom.empty?
         path = Pathname.new(custom)
         return path.absolute? ? path : app_root.join(custom)
       end
-
-      submodule = app_root.join('config', 'whitelabel', 'clients')
-      return submodule if submodule.directory?
 
       app_root.join('config', 'clients')
     end

@@ -7,7 +7,8 @@ services:
     volumes:
       - ./docuseal:/data/docuseal
       # Prod needs ONE config. Point INTEBEC_CONFIG_FILE at the client to deploy,
-      # e.g. INTEBEC_CONFIG_FILE=./config/clients/parcours.yml — no code change.
+      # e.g. INTEBEC_CONFIG_FILE=../intebec-whitelabel/clients/parcours.yml.
+      # Both vars are kept in sync in .env by intebec-whitelabel/bin/use-client.
       - ${INTEBEC_CONFIG_FILE:-./config/config.yml}:/run/secrets/config.yml:ro
       # Per-client brand images (logo/favicons). The config's asset paths point
       # at /brands/<client>/..., served from here. Folder is gitignored, so it

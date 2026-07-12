@@ -1,21 +1,20 @@
 # =============================================================================
 # Intebec DocuSeal — white-label config TEMPLATE
 # =============================================================================
-# Copy this file to create a client config, then point the app at it:
+# Client configs live in the private intebec-whitelabel repo (checked out
+# side by side with this app). To create a new client, copy this template
+# there and switch to it:
 #
-#   Single config (typical prod):
-#     cp config/config.example.yml config/config.yml
-#     # docker mounts it at /run/secrets/config.yml (INTEBEC_CONFIG_PATH)
+#   cp config/config.example.yml ../intebec-whitelabel/clients/acme.yml
+#   cd ../intebec-whitelabel
+#   bash bin/use-client ../intebec-docuseal acme   # writes config/config.yml,
+#                                                  # public/brands/acme and .env
 #
-#   Multiple clients (dev):
-#     cp config/config.example.yml config/clients/parcours.yml
-#     cp config/config.example.yml config/clients/acme.yml
-#     bin/use-client parcours        # symlinks config/config.yml -> clients/parcours.yml
-#     # ...or, one-off without symlink:
-#     INTEBEC_CLIENT=acme bin/rails server
+# One-off without switching (dev):
+#   INTEBEC_CLIENT=acme INTEBEC_CLIENTS_DIR=../intebec-whitelabel/clients bin/rails server
 #
-# Files in config/clients/ and config/config.yml are gitignored, so client
-# branding never lands in version control. See config/clients/README.md.
+# config/config.yml, config/clients/ and public/brands/ are gitignored, so
+# client branding never lands in this public repo.
 #
 # Every key below is OPTIONAL — anything you omit falls back to a safe default
 # (see lib/whitelabel.rb). The values here are an illustrative example.
