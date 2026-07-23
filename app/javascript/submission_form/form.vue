@@ -147,7 +147,7 @@
     @submit.prevent="submitStep"
   />
   <button
-    v-if="!isFormVisible"
+    v-if="!isFormVisible && currentField"
     id="expand_form_button"
     class="btn btn-neutral flex text-white absolute bottom-0 w-full mb-3 expand-form-button text-base"
     style="width: 96%; margin-left: 2%"
@@ -174,6 +174,7 @@
     />
   </button>
   <div
+    v-if="currentField"
     v-show="isFormVisible"
     id="form_container"
     class="shadow-md bg-base-100 absolute bottom-0 w-full border-base-200 border p-4 rounded form-container overflow-hidden"
@@ -1172,7 +1173,11 @@ export default {
       }
     },
     isAnonymousChecboxes () {
-      return this.currentField.type === 'checkbox' && this.currentStepFields.every((e) => !e.name && !e.required) && this.currentStepFields.length > 4
+      if (this.currentField) {
+        return this.currentField.type === 'checkbox' && this.currentStepFields.every((e) => !e.name && !e.required) && this.currentStepFields.length > 4
+      } else {
+        return false
+      }
     },
     isButtonDisabled () {
       if (this.recalculateButtonDisabledKey) {
@@ -1570,6 +1575,7 @@ export default {
       }
     },
     goToStep (stepIndex, scrollToArea = false, clickUpload = false) {
+      this.isInvite = false
       this.currentStep = stepIndex
       this.showFillAllRequiredFields = false
 
@@ -1594,6 +1600,10 @@ export default {
       })
     },
     saveStep (formData) {
+      if (!formData && !this.$refs.form) {
+        return
+      }
+
       const currentFieldUuids = this.currentStepFields.map((f) => f.uuid)
       const currentFieldType = this.currentField.type
 

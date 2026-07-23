@@ -6,7 +6,10 @@ module Submissions
   module_function
 
   def maybe_update_completed_at(submission)
-    incomplete_submitter = Submitter.where(submission_id: submission.id, completed_at: nil).select(1)
+    viewer_uuids = submission.template_submitters.to_a.filter_map { |s| s['uuid'] if s['is_viewer'] }
+
+    incomplete_submitter = Submitter.where(submission_id: submission.id, completed_at: nil).limit(1)
+    incomplete_submitter = incomplete_submitter.where.not(uuid: viewer_uuids) if viewer_uuids.present?
 
     max_completed_at =
       Arel::Nodes::Grouping.new(
@@ -16,7 +19,7 @@ module Submissions
       )
 
     Submission.where(id: submission.id, completed_at: nil)
-              .where.not(incomplete_submitter.arel.exists)
+              .where.not(incomplete_submitter.select(1).arel.exists)
               .update_all(completed_at: max_completed_at)
               .positive?
   end
@@ -124,10 +127,13 @@ module Submissions
 
       Submissions::CreateFromSubmitters.maybe_set_dynamic_documents(submission)
 
+      Submissions::CreateFromSubmitters.assign_submitters_is_viewer(submission)
+
       submission.save!
 
       if submission.expire_at?
-        ProcessSubmissionExpiredJob.perform_at(submission.expire_at, 'submission_id' => submission.id)
+        ProcessSubmissionExpiredJob.perform_at(submission.expire_at, 'submission_id' => submission.id,
+                                                                     'expire_at' => submission.expire_at.to_i)
       end
 
       submission
@@ -151,24 +157,47 @@ module Submissions
     submissions.each_with_index do |submission, index|
       delay_seconds = (delay + index).seconds if delay
 
-      template_submitters = submission.template_submitters
       submitters_index = submission.submitters.reject(&:completed_at?).index_by(&:uuid)
 
-      if template_submitters.any? { |s| s['order'] }
-        min_order = template_submitters.map.with_index { |s, i| s['order'] || i }.min
-
-        first_submitters = template_submitters.filter_map do |s|
-          submitters_index[s['uuid']] if s['order'] == min_order
-        end
+      if submission.template_submitters.any? { |s| s['order'] }
+        first_submitters = find_first_order_submitters(submission, submitters_index)
 
         Submitters.send_signature_requests(first_submitters, delay_seconds:)
       elsif submission.submitters_order_preserved?
-        first_submitter = template_submitters.filter_map { |s| submitters_index[s['uuid']] }.first
+        first_submitter = find_first_submitter(submission, submitters_index)
 
-        Submitters.send_signature_requests([first_submitter], delay_seconds:) if first_submitter
+        if first_submitter
+          first_viewers = find_first_viewers(first_submitter, submitters_index)
+
+          Submitters.send_signature_requests([first_submitter, *first_viewers], delay_seconds:)
+        elsif submission.submitters.all?(&:viewer?)
+          Submitters.send_signature_requests(submitters_index.values, delay_seconds:)
+        end
       else
         Submitters.send_signature_requests(submitters_index.values, delay_seconds:)
       end
+    end
+  end
+
+  def find_first_order_submitters(submission, submitters_index)
+    template_submitters = submission.template_submitters
+
+    min_order = template_submitters.map.with_index { |s, i| s['order'] || i }.min
+
+    template_submitters.filter_map { |s| submitters_index[s['uuid']] if s['order'] == min_order }
+  end
+
+  def find_first_submitter(submission, submitters_index)
+    submission.template_submitters.filter_map { |s| submitters_index[s['uuid']] }.find { |s| !s.viewer? }
+  end
+
+  def find_first_viewers(first_submitter, submitters_index)
+    first_submitter.submission.template_submitters.each_with_object([]) do |s, viewers|
+      submitter = submitters_index[s['uuid']]
+
+      break viewers if submitter && !submitter.viewer? && submitter != first_submitter
+
+      viewers << submitter if submitter&.viewer?
     end
   end
 

@@ -2,30 +2,29 @@
 
 module Submitters
   module FormConfigs
+    DEFAULT_KEYS = [AccountConfig::FORM_COMPLETED_BUTTON_KEY,
+                    AccountConfig::FORM_COMPLETED_MESSAGE_KEY,
+                    AccountConfig::FORM_WITH_CONFETTI_KEY,
+                    AccountConfig::FORM_PREFILL_SIGNATURE_KEY,
+                    AccountConfig::WITH_SIGNATURE_ID,
+                    AccountConfig::ALLOW_TO_DECLINE_KEY,
+                    AccountConfig::ALLOW_TO_DELEGATE_KEY,
+                    AccountConfig::ENFORCE_SIGNING_ORDER_KEY,
+                    AccountConfig::REQUIRE_SIGNING_REASON_KEY,
+                    AccountConfig::REUSE_SIGNATURE_KEY,
+                    AccountConfig::WITH_FIELD_LABELS_KEY,
+                    AccountConfig::ALLOW_TO_PARTIAL_DOWNLOAD_KEY,
+                    AccountConfig::ALLOW_TYPED_SIGNATURE,
+                    AccountConfig::WITH_SUBMITTER_TIMEZONE_KEY,
+                    AccountConfig::WITH_TIMESTAMP_SECONDS_KEY,
+                    AccountConfig::WITH_SIGNATURE_ID_REASON_KEY,
+                    AccountConfig::WITH_SIGNATURE_ID_COMPLETED_AT_KEY,
+                    *(Docuseal.multitenant? ? [] : [AccountConfig::POLICY_LINKS_KEY])].freeze
+
     module_function
 
-    def default_keys
-      [AccountConfig::FORM_COMPLETED_BUTTON_KEY,
-       AccountConfig::FORM_COMPLETED_MESSAGE_KEY,
-       AccountConfig::FORM_WITH_CONFETTI_KEY,
-       AccountConfig::FORM_PREFILL_SIGNATURE_KEY,
-       AccountConfig::WITH_SIGNATURE_ID,
-       AccountConfig::ALLOW_TO_DECLINE_KEY,
-       AccountConfig::ALLOW_TO_DELEGATE_KEY,
-       AccountConfig::ENFORCE_SIGNING_ORDER_KEY,
-       AccountConfig::REQUIRE_SIGNING_REASON_KEY,
-       AccountConfig::REUSE_SIGNATURE_KEY,
-       AccountConfig::WITH_FIELD_LABELS_KEY,
-       AccountConfig::ALLOW_TO_PARTIAL_DOWNLOAD_KEY,
-       AccountConfig::ALLOW_TYPED_SIGNATURE,
-       AccountConfig::WITH_SUBMITTER_TIMEZONE_KEY,
-       AccountConfig::WITH_TIMESTAMP_SECONDS_KEY,
-       AccountConfig::WITH_SIGNATURE_ID_REASON_KEY,
-       *(Docuseal.multitenant? ? [] : [AccountConfig::POLICY_LINKS_KEY])]
-    end
-
     def call(submitter, keys = [])
-      configs = submitter.submission.account.account_configs.where(key: default_keys + keys)
+      configs = submitter.submission.account.account_configs.where(key: DEFAULT_KEYS + keys)
 
       completed_button = find_safe_value(configs, AccountConfig::FORM_COMPLETED_BUTTON_KEY) || {}
       completed_message = find_safe_value(configs, AccountConfig::FORM_COMPLETED_MESSAGE_KEY) || {}
@@ -41,6 +40,8 @@ module Submitters
       with_submitter_timezone = find_safe_value(configs, AccountConfig::WITH_SUBMITTER_TIMEZONE_KEY) == true
       with_timestamp_seconds = find_safe_value(configs, AccountConfig::WITH_TIMESTAMP_SECONDS_KEY) == true
       with_signature_id_reason = find_safe_value(configs, AccountConfig::WITH_SIGNATURE_ID_REASON_KEY) != false
+      with_signature_id_completed_at =
+        find_safe_value(configs, AccountConfig::WITH_SIGNATURE_ID_COMPLETED_AT_KEY) == true
       with_field_labels = find_safe_value(configs, AccountConfig::WITH_FIELD_LABELS_KEY) != false
       policy_links = find_safe_value(configs, AccountConfig::POLICY_LINKS_KEY)
 
@@ -48,7 +49,8 @@ module Submitters
                 reuse_signature:, with_decline:, with_partial_download:,
                 policy_links:, enforce_signing_order:, completed_message:,
                 require_signing_reason:, prefill_signature:, with_submitter_timezone:,
-                with_signature_id_reason:, with_signature_id:, with_field_labels:, with_timestamp_seconds: }
+                with_signature_id_reason:, with_signature_id:, with_field_labels:, with_timestamp_seconds:,
+                with_signature_id_completed_at: }
 
       keys.each do |key|
         attrs[key.to_sym] = configs.find { |e| e.key == key.to_s }&.value
