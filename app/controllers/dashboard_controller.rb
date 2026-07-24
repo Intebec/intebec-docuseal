@@ -10,7 +10,7 @@ class DashboardController < ApplicationController
   skip_authorization_check
 
   def index
-    if cookies.permanent[:dashboard_view] == 'submissions'
+    if cookies.permanent[:dashboard_view] == 'submissions' && params[:tour] != 'true'
       SubmissionsDashboardController.dispatch(:index, request, response)
     else
       TemplatesDashboardController.dispatch(:index, request, response)

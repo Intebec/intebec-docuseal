@@ -141,7 +141,7 @@ export default class extends HTMLElement {
         },
         onHighlightStarted: () => {}
       }
-    ])
+    ].filter((step) => document.querySelector(step.element)))
 
     this.driverObj.drive()
   }
