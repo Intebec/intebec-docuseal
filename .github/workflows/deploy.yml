@@ -1,0 +1,102 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────
+  # Vérifications avant mise en ligne. Rien ne part en déploiement si ce job
+  # échoue — `deploy` en dépend explicitement (`needs: verify`).
+  # ────────────────────────────────────────────────────────────────────────
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      RAILS_ENV: test
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Rubocop
+        run: bundle exec rubocop
+
+      - name: Brakeman
+        run: bundle exec brakeman -q
+
+      - name: Prepare database
+        run: bundle exec rails db:prepare
+
+      - name: RSpec
+        run: bundle exec rspec
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Le déploiement en tant que tel se passe ailleurs, sur une infrastructure
+  # qui n'est pas documentée dans ce dépôt public. Ce job se contente de
+  # déclencher ce processus via un webhook signé — aucune commande de build
+  # ni d'accès SSH ici.
+  #
+  # Tourne sur des runners auto-hébergés déjà positionnés pour atteindre la
+  # cible interne ; l'appel reste signé (HMAC SHA-256) pour que la cible
+  # puisse le vérifier.
+  # ────────────────────────────────────────────────────────────────────────
+  deploy:
+    runs-on: [self-hosted, docker]
+    needs: verify
+
+    steps:
+      - name: Trigger deployment
+        env:
+          DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+          DEPLOY_ENDPOINT_BASE: ${{ vars.DEPLOY_ENDPOINT_BASE }}
+          DEPLOY_TARGET_ID: ${{ vars.DEPLOY_TARGET_ID }}
+          GIT_REF: ${{ github.ref }}
+        run: |
+          set -e
+
+          BODY="{\"ref\":\"${GIT_REF}\"}"
+
+          SIGNATURE=$(printf '%s' "$BODY" |
+            openssl dgst -sha256 -hmac "$DEPLOY_WEBHOOK_SECRET" |
+            awk '{print $2}')
+
+          curl -fsS -X POST \
+            -H "Content-Type: application/json" \
+            -H "X-GitHub-Event: push" \
+            -H "X-Hub-Signature-256: sha256=$SIGNATURE" \
+            --data "$BODY" \
+            "${DEPLOY_ENDPOINT_BASE}/${DEPLOY_TARGET_ID}"
+
+          echo "Deployment triggered."

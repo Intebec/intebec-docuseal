@@ -21,16 +21,16 @@ email:
   from_address: "direction@monparcours.ca"
   attribution_html: 'Envoyé avec <a href="https://intebec.ca">Intébec Sign</a>.'
 assets:
-  logo_path: "/logo.svg"
+  logo_path: "/brands/logo.svg"
   logo_width: 137
   logo_height: 137
-  favicon_svg: "/favicon.svg"
-  favicon_ico: "/favicon.ico"
-  favicon_16: "/favicon-16x16.png"
-  favicon_32: "/favicon-32x32.png"
-  favicon_96: "/favicon-96x96.png"
-  apple_touch_icon: "/apple-icon-180x180.png"
-  preview_image: "/logo.svg"
+  favicon_svg: "/brands/favicon.svg"
+  favicon_ico: "/brands/favicon.ico"
+  favicon_16: "/brands/favicon-16x16.png"
+  favicon_32: "/brands/favicon-32x32.png"
+  favicon_96: "/brands/favicon-96x96.png"
+  apple_touch_icon: "/brands/apple-icon-180x180.png"
+  preview_image: "/brands/logo.svg"
 
 theme:
   primary: "205 68% 32%"

@@ -1,28 +1,32 @@
-# Komodo Stack definition for a single-client, self-contained deployment.
+# Komodo Stack definition — single, generic image; config and brand assets
+# are mounted at runtime from the Stack's Run Directory instead of baked into
+# the image. This lets config.yml be added as a Komodo "Config File" and
+# edited straight from the Komodo UI, with just a restart (no rebuild) to
+# apply changes.
 #
-# Unlike docker-compose.yml (which mounts config.yml/brands from a sibling
-# intebec-whitelabel checkout for local/dev use), this builds one image with
-# the client's white-label config and brand assets baked in via the Dockerfile
-# "client" stage. Only the app repo is needed — no second repo, no runtime
-# secret files to manage on the target host.
-#
-# Set INTEBEC_CLIENT in the Stack's environment to pick the client
-# (defaults to "parcours"); clients/<name>/ must exist in this repo.
+# Run Directory on the host must contain:
+#   config.yml   — add under the Stack's Config Files to edit it in the UI
+#                  (seed it from clients/<name>/config.yml)
+#   brands/      — logo, favicons, etc. Binary files aren't editable through
+#                  the Config Files text editor — upload/replace them on the
+#                  host directly (seed from clients/<name>/public/), then
+#                  restart the stack to pick up changes.
 services:
   app:
     build:
       context: .
-      target: client
-      args:
-        CLIENT: ${INTEBEC_CLIENT:-parcours}
-    image: intebec/docuseal:${INTEBEC_CLIENT:-parcours}
+      target: app
+    image: intebec/docuseal:latest
     restart: unless-stopped
     ports:
       - 3000:3000
     volumes:
       - docuseal_data:/data/docuseal
+      - ./config.yml:/run/secrets/config.yml:ro
+      - ./brands:/app/public/brands:ro
     environment:
       - FORCE_SSL=${FORCE_SSL:-true}
+      - INTEBEC_CONFIG_PATH=/run/secrets/config.yml
 
 volumes:
   docuseal_data:
