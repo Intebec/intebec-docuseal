@@ -656,9 +656,7 @@ module Whitelabel
       client = ENV['INTEBEC_CLIENT'].to_s.strip
       return clients_dir.join("#{client}.yml") unless client.empty?
 
-      if defined?(Rails) && Rails.respond_to?(:env) && (Rails.env.development? || Rails.env.test?)
-        return app_root.join('config', 'config.yml')
-      end
+      return app_root.join('config', 'config.yml') if defined?(Rails) && Rails.respond_to?(:env) && Rails.env.local?
 
       Pathname.new(DEFAULT_CONFIG_PATH)
     end

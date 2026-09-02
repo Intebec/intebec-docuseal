@@ -46,9 +46,7 @@ module Whitelabel
       errors = []
       warnings = []
 
-      unless raw.is_a?(Hash)
-        return { errors: ['Config root must be a YAML mapping (key: value).'], warnings: [] }
-      end
+      return { errors: ['Config root must be a YAML mapping (key: value).'], warnings: [] } unless raw.is_a?(Hash)
 
       check_unknown_top_level(raw, warnings)
       check_brand(raw, warnings)
@@ -146,13 +144,13 @@ module Whitelabel
         warnings << "'locale.#{key}' should be a string locale code."
       end
 
-      if avail.is_a?(Array)
-        %w[default fallback].each do |key|
-          val = locale[key]
-          next if val.nil? || avail.include?(val)
+      return unless avail.is_a?(Array)
 
-          warnings << "'locale.#{key}' (#{val.inspect}) is not in 'locale.available'."
-        end
+      %w[default fallback].each do |key|
+        val = locale[key]
+        next if val.nil? || avail.include?(val)
+
+        warnings << "'locale.#{key}' (#{val.inspect}) is not in 'locale.available'."
       end
     end
 
@@ -188,7 +186,8 @@ module Whitelabel
         end
 
         (actions - PERMISSION_ACTIONS).each do |act|
-          warnings << "Role '#{name}'.permissions.#{res} has unknown action '#{act}'. Known: #{PERMISSION_ACTIONS.join(', ')}."
+          warnings << "Role '#{name}'.permissions.#{res} has unknown action '#{act}'. " \
+                      "Known: #{PERMISSION_ACTIONS.join(', ')}."
         end
       end
     end
@@ -202,7 +201,8 @@ module Whitelabel
       end
 
       (sections - SETTINGS_SECTIONS).each do |sec|
-        warnings << "Role '#{name}'.settings_sections has unknown section '#{sec}'. Known: #{SETTINGS_SECTIONS.join(', ')}."
+        warnings << "Role '#{name}'.settings_sections has unknown section '#{sec}'. " \
+                    "Known: #{SETTINGS_SECTIONS.join(', ')}."
       end
     end
 

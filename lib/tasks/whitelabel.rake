@@ -4,7 +4,7 @@ require_relative '../whitelabel'
 
 namespace :whitelabel do
   desc 'Validate a single white-label config file. Usage: rake whitelabel:validate[path/to/config.yml]'
-  task :validate, [:path] do |_t, args|
+  task :validate, [:path] => :environment do |_t, args|
     path = args[:path] || ENV['CONFIG'] || Whitelabel.config_path.to_s
 
     abort("Config file not found: #{path}") unless File.file?(path)
@@ -14,7 +14,7 @@ namespace :whitelabel do
   end
 
   desc 'Validate every config in the clients dir (INTEBEC_CLIENTS_DIR or config/clients).'
-  task :lint do
+  task lint: :environment do
     dir = Whitelabel.clients_dir
     files = Dir.glob(File.join(dir, '*.yml')).reject { |f| File.basename(f).start_with?('.') }
 
