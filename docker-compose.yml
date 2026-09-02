@@ -2,6 +2,7 @@ services:
   app:
     build: .
     image: intebec/docuseal:latest
+    restart: unless-stopped
     ports:
       - 3000:3000
     volumes:

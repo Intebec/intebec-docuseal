@@ -103,3 +103,21 @@ ENV VIPS_BLOCK_UNTRUSTED=1
 
 EXPOSE 3000
 CMD ["/app/bin/bundle", "exec", "puma", "-C", "/app/config/puma.rb", "--dir", "/app"]
+
+# ---------------------------------------------------------------------------
+# Client overlay — bakes one client's white-label config.yml and brand assets
+# into the image at build time, so the deployed container needs no runtime
+# file mounts and no sibling white-label repo/checkout.
+#
+# Build with:
+#   docker build --target client --build-arg CLIENT=parcours -t intebec/docuseal:parcours .
+#
+# Expects, in the build context:
+#   clients/<CLIENT>/config.yml   -> baked to /run/secrets/config.yml
+#   clients/<CLIENT>/public/      -> baked over /app/public/ (logo, favicons, ...)
+# ---------------------------------------------------------------------------
+FROM app AS client
+ARG CLIENT
+COPY --chown=docuseal:docuseal clients/${CLIENT}/config.yml /run/secrets/config.yml
+COPY --chown=docuseal:docuseal clients/${CLIENT}/public/. /app/public/
+ENV INTEBEC_CONFIG_PATH=/run/secrets/config.yml
