@@ -54,9 +54,16 @@ module Docuseal
   end
 end
 
-Rails.application.config.i18n.default_locale = Whitelabel.default_locale.to_sym
-Rails.application.config.i18n.available_locales = Whitelabel.available_locales.map(&:to_sym)
-Rails.application.config.i18n.fallbacks = [Whitelabel.fallback_locale.to_sym]
+# Only override the app's locale config when a real white-label config
+# actually specifies one — otherwise leave config/application.rb's own
+# defaults alone. Whitelabel.available_locales falls back to %w[en] when no
+# config is loaded (see lib/whitelabel.rb#load_test_defaults!), which would
+# otherwise silently gut locale support for every unbranded/test/CI run.
+if Whitelabel.config.key?('locale')
+  Rails.application.config.i18n.default_locale = Whitelabel.default_locale.to_sym
+  Rails.application.config.i18n.available_locales = Whitelabel.available_locales.map(&:to_sym)
+  Rails.application.config.i18n.fallbacks = [Whitelabel.fallback_locale.to_sym]
+end
 
 deep_stringify_keys = lambda do |hash|
   hash.each_with_object({}) do |(key, value), memo|
