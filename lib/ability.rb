@@ -82,6 +82,13 @@ class Ability
   def map_cancan_actions(cancan_action, config_actions)
     case cancan_action
     when :manage
+      # CanCanCan only treats a rule as covering can?(:manage, ...) queries when
+      # the rule's action is literally :manage — granting the four expanded
+      # actions individually does NOT satisfy that check. Grant :manage itself
+      # when a role has full CRUD, so the app's many can?(:manage, ...) checks
+      # (controllers, views) work for full-permission roles.
+      return [:manage] if %w[read create update delete].all? { |a| config_actions.include?(a) }
+
       mapped = []
       mapped << :read    if config_actions.include?('read')
       mapped << :create  if config_actions.include?('create')
