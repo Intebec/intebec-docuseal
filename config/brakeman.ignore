@@ -17,12 +17,12 @@
       "note": "Safe SQL"
     },
     {
-      "fingerprint": "f3a20210cde7b9cb5944d53505fe80fea502308416143f4da9ec2422f6b7035c",
-      "note": "Safe Param"
-    },
-    {
       "fingerprint": "dbbfb4a4ace7f43d8247cbb44afa8b628e005e6194ca5552e029b200f725a2d5",
       "message": "Unescaped find_by!(uuid: params[:id]) is not risky"
+    },
+    {
+      "fingerprint": "db66d139578f234e08e6bc439c743002febdd21be8029b7071d896bfa185f22d",
+      "note": "McpToken#token is SecureRandom.base58(43), never user input and never contains HTML-unsafe characters"
     }
   ]
 }
