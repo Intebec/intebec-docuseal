@@ -349,7 +349,7 @@ module Whitelabel
     # =====================================================================
 
     def webhook_user_agent
-      config.dig('webhooks', 'user_agent') || "#{brand_name} Webhook"
+      config.dig('webhooks', 'user_agent') || 'DocuSeal.com Webhook'
     end
 
     # =====================================================================
