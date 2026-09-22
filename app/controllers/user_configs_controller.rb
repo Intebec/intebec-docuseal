@@ -12,7 +12,7 @@ class UserConfigsController < ApplicationController
   InvalidKey = Class.new(StandardError)
 
   def create
-    @user_config.update!(user_config_params)
+    @user_config.update!(value: user_config_params[:value])
 
     head :ok
   end
