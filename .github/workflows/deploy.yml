@@ -11,7 +11,7 @@ jobs:
   # échoue — `deploy` en dépend explicitement (`needs: verify`).
   # ────────────────────────────────────────────────────────────────────────
   verify:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, docker]
 
     services:
       postgres:
@@ -37,15 +37,22 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libvips42t64 liblept5
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libvips42t64 liblept5 build-essential
 
+      # Build matching the runner: the self-hosted runner is arm64, GitHub's are x64.
       - name: Install pdfium
         env:
-          PDFIUM_URL: https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8035/pdfium-linux-x64.tgz
-          PDFIUM_SHA256: 2e6db042dd2cff2d5247023dbec6c7ebb800042ce83c835d6468d45229669bd4
+          PDFIUM_BASE: https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8035
+          PDFIUM_SHA256_X64: 2e6db042dd2cff2d5247023dbec6c7ebb800042ce83c835d6468d45229669bd4
+          PDFIUM_SHA256_ARM64: 10bb7728a5268593a31c2024e0e57ea26b73b7a54195054f43d2ad0869d55a48
         run: |
           set -e
-          curl -fsSL -o pdfium.tgz "$PDFIUM_URL"
+          case "${{ runner.arch }}" in
+            X64) PDFIUM_ARCH=x64; PDFIUM_SHA256=$PDFIUM_SHA256_X64 ;;
+            ARM64) PDFIUM_ARCH=arm64; PDFIUM_SHA256=$PDFIUM_SHA256_ARM64 ;;
+            *) echo "::error::Unsupported runner arch ${{ runner.arch }}"; exit 1 ;;
+          esac
+          curl -fsSL -o pdfium.tgz "$PDFIUM_BASE/pdfium-linux-$PDFIUM_ARCH.tgz"
           echo "$PDFIUM_SHA256  pdfium.tgz" | sha256sum -c -
           mkdir -p pdfium-extracted
           tar xzf pdfium.tgz -C pdfium-extracted lib/libpdfium.so
@@ -57,6 +64,16 @@ jobs:
         with:
           ruby-version: '4.0.5'
           bundler-cache: true
+
+      # Node then Yarn first: the self-hosted runner has neither preinstalled, and
+      # setup-node's yarn cache needs `yarn` already on the PATH.
+      - name: Setup Node (for Yarn)
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install Yarn
+        run: command -v yarn >/dev/null || npm install -g yarn@1
 
       - name: Setup Node
         uses: actions/setup-node@v5
