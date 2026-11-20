@@ -71,6 +71,9 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 24
+          # v5 caches by itself when package.json has `packageManager`, which
+          # needs the very yarn this step is here to install.
+          package-manager-cache: false
 
       - name: Install Yarn
         run: command -v yarn >/dev/null || npm install -g yarn@1
