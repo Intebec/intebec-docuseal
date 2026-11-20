@@ -87,6 +87,18 @@ jobs:
       - name: Install JS dependencies
         run: yarn install --frozen-lockfile
 
+      # The system specs drive Chrome through Ferrum (Cuprite). GitHub's runners ship
+      # Google Chrome; the self-hosted one doesn't, and there is no Google Chrome build
+      # for Linux arm64. Playwright's Chromium (with its system libraries) stands in,
+      # and BROWSER_PATH tells Ferrum where it is.
+      - name: Chromium for the system specs
+        run: |
+          if command -v google-chrome >/dev/null || command -v chromium >/dev/null; then exit 0; fi
+          npx -y playwright@1 install --with-deps --no-shell chromium
+          BROWSER=$(ls -d ~/.cache/ms-playwright/chromium-*/chrome-linux*/chrome | head -1)
+          test -x "$BROWSER"
+          echo "BROWSER_PATH=$BROWSER" >> "$GITHUB_ENV"
+
       - name: Rubocop
         run: bundle exec rubocop
 
